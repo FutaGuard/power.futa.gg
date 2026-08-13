@@ -10,3 +10,12 @@ npm run dev
 ```
 
 資料來自 [Sunset Rollercoaster API](https://opendata.futa.gg/swagger-ui)，原始資料由台灣電力公司公開。
+
+## Cloudflare Pages
+
+Pages 使用靜態匯出版本，互動資料仍由瀏覽器向開放資料 API 即時讀取。
+
+- Framework preset：`None`
+- Build command：`npm run build:pages`
+- Build output directory：`dist/client`
+- Node.js：`22.13.0` 以上
