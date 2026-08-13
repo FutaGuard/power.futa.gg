@@ -2824,6 +2824,10 @@ html[data-theme="dark"] .county-shape {
 @media (max-width: 760px) {
   html { scroll-padding-top: 84px; }
   .power-app { width: calc(100% - 16px); padding-top: 8px; }
+  .site-main > *,
+  .dashboard-grid > *,
+  .region-grid > *,
+  .history-content-grid > * { min-width: 0; }
   .site-header { top: 8px; min-height: 58px; padding: 7px 8px 7px 10px; border-radius: 16px; }
   .power-mark { --mark-size: 38px !important; border-radius: 11px 11px 13px 9px; }
   .brand-copy strong { font-size: 17px; }
