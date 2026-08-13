@@ -610,7 +610,7 @@ function LoadChart({
   }, [data]);
   const cursorX = selected ? 54 + (timeMinutes(selected.observed_at) / 1440) * 688 : 54;
   const cursorY = selected ? 20 + (1 - selected.total_load_mw / maxValue) * 237 : 257;
-  const tooltipX = Math.min(Math.max(cursorX - 72, 62), 600);
+  const tooltipX = Math.min(Math.max(cursorX - 102, 54), 522);
 
   const updateFromPointer = (event: PointerEvent<SVGRectElement>) => {
     if (!data.length) return;
@@ -683,23 +683,23 @@ function LoadChart({
         {selected && (
           <g className="chart-cursor" pointerEvents="none">
             <line x1={cursorX} x2={cursorX} y1="20" y2="257" />
-            <circle cx={cursorX} cy={cursorY} r="5" />
-            <g transform={`translate(${tooltipX} 33)`}>
-              <rect width="162" height={mode === "total" ? 80 : 132} rx="12" />
-              <text x="13" y="21" className="tooltip-time">{formatTime(selected.observed_at)}</text>
-              <circle cx="16" cy="42" r="4" className="dot-total" />
-              <text x="27" y="46">總用電</text>
-              <text x="149" y="46" textAnchor="end" className="tooltip-value">{formatNumber(selected.total_load_mw)} MW</text>
+            <circle cx={cursorX} cy={cursorY} r="6" />
+            <g transform={`translate(${tooltipX} 28)`}>
+              <rect width="220" height={mode === "total" ? 102 : 160} rx="14" />
+              <text x="16" y="25" className="tooltip-time">{formatTime(selected.observed_at)}</text>
+              <circle cx="19" cy="52" r="5" className="dot-total" />
+              <text x="33" y="57" className="tooltip-label">總用電</text>
+              <text x="204" y="57" textAnchor="end" className="tooltip-value">{formatNumber(selected.total_load_mw)} MW</text>
               {mode === "regions" && (
                 <>
-                  <text x="13" y="68" className="tooltip-sub">北 {formatNumber(selected.north_load_mw)}</text>
-                  <text x="88" y="68" className="tooltip-sub">中 {formatNumber(selected.central_load_mw)}</text>
-                  <text x="13" y="89" className="tooltip-sub">南 {formatNumber(selected.south_load_mw)}</text>
-                  <text x="88" y="89" className="tooltip-sub">東 {formatNumber(selected.east_load_mw)}</text>
-                  <text x="13" y="115" className="tooltip-note">單位：MW</text>
+                  <text x="16" y="88" className="tooltip-sub">北部 {formatNumber(selected.north_load_mw)}</text>
+                  <text x="116" y="88" className="tooltip-sub">中部 {formatNumber(selected.central_load_mw)}</text>
+                  <text x="16" y="116" className="tooltip-sub">南部 {formatNumber(selected.south_load_mw)}</text>
+                  <text x="116" y="116" className="tooltip-sub">東部 {formatNumber(selected.east_load_mw)}</text>
+                  <text x="16" y="144" className="tooltip-note">單位：MW</text>
                 </>
               )}
-              {mode === "total" && <text x="13" y="68" className="tooltip-note">拖曳或使用方向鍵探索</text>}
+              {mode === "total" && <text x="16" y="84" className="tooltip-note">拖曳或使用方向鍵探索</text>}
             </g>
           </g>
         )}

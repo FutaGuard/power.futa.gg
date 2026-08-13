@@ -821,14 +821,14 @@ html[data-theme="dark"] .hero-section {
 }
 
 .segmented-control button {
-  min-height: 31px;
-  padding: 0 12px;
+  min-height: 36px;
+  padding: 0 14px;
   color: var(--muted);
   border: 0;
   border-radius: 8px;
   background: transparent;
-  font-size: 11px;
-  font-weight: 750;
+  font-size: 13px;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -850,11 +850,11 @@ html[data-theme="dark"] .hero-section {
 .chart-legend {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 18px;
   margin: 17px 5px 0;
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .chart-legend span {
@@ -865,8 +865,8 @@ html[data-theme="dark"] .hero-section {
 
 .legend-dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
 }
 
@@ -879,6 +879,8 @@ html[data-theme="dark"] .hero-section {
 .chart-unit {
   margin-left: auto;
   font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .load-chart-shell {
@@ -902,12 +904,13 @@ html[data-theme="dark"] .hero-section {
 .chart-axis-label {
   fill: var(--muted);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .chart-line {
   fill: none;
-  stroke-width: 2.8;
+  stroke-width: 3.4;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
@@ -938,25 +941,34 @@ html[data-theme="dark"] .hero-section {
 
 .chart-cursor text {
   fill: var(--muted);
-  font-size: 8.5px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .chart-cursor .tooltip-time,
 .chart-cursor .tooltip-value {
   fill: var(--ink);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 800;
+}
+
+.chart-cursor .tooltip-label {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 850;
 }
 
 .chart-cursor .tooltip-sub {
   fill: var(--ink);
   font-family: var(--font-mono);
+  font-size: 11.5px;
 }
 
 .chart-cursor .tooltip-note {
   fill: var(--faint);
-  font-size: 7px;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .chart-cursor .dot-total {
@@ -2078,6 +2090,14 @@ html[data-theme="dark"] .county-shape {
   .dashboard-grid { grid-template-columns: minmax(0, 1.15fr) minmax(450px, 0.85fr); }
   .region-content { grid-template-columns: minmax(250px, 0.65fr) minmax(400px, 1.35fr); }
   .generator-summary span:last-child { display: none; }
+}
+
+@media (max-width: 1120px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .load-card,
+  .mix-card { min-height: auto; }
+  .mix-content { grid-template-columns: 260px 1fr; }
+  .fuel-trend { margin-top: 18px; }
 }
 
 @media (max-width: 1020px) {
