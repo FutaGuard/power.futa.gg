@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://power.futa.gg"),
   title: "台灣電力即時資訊 · power.futa.gg",
   description:
-    "一次掌握台灣即時用電、發電結構、區域供需、備轉容量與各機組發電狀態。",
+    "一次掌握台灣即時與歷史用電、發電結構、區域供需、備轉容量與各機組發電狀態。",
   applicationName: "台灣電力",
   alternates: { canonical: "https://power.futa.gg" },
   openGraph: {
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     siteName: "power.futa.gg",
     title: "台灣電力即時資訊 · power.futa.gg",
     description:
-      "看懂此刻台灣用了多少電、電從哪裡來，以及四大區域的供需狀態。",
+      "看懂此刻與過去的台灣用電、發電結構，以及四大區域的供需狀態。",
     images: [
       {
         url: "/og.png",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "台灣電力即時資訊 · power.futa.gg",
     description:
-      "看懂此刻台灣用了多少電、電從哪裡來，以及四大區域的供需狀態。",
+      "看懂此刻與過去的台灣用電、發電結構，以及四大區域的供需狀態。",
     images: ["/og.png"],
   },
   icons: {

@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   BatteryCharging,
   Bolt,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronRight,
@@ -14,6 +15,7 @@ import {
   Factory,
   Flame,
   Gauge,
+  History as HistoryIcon,
   Info,
   Leaf,
   LoaderCircle,
@@ -50,6 +52,8 @@ type RegionKey = "north" | "central" | "south" | "east";
 type GeneratorFilter = "all" | "running" | "stopped" | "limited";
 type GeneratorStatusTone = "is-running" | "is-limited" | "is-outage" | "is-alert" | "is-stopped";
 type LoadMode = "total" | "regions";
+type HistoryPreset = "today" | "week" | "month" | "custom";
+type HistoryMetric = "load" | "reserve" | "solar" | "renewable";
 
 interface PowerSnapshot {
   id: number;
@@ -130,6 +134,17 @@ interface DashboardData {
   generators: GeneratorRecord[];
 }
 
+interface HistoryData {
+  power: PowerSnapshot[];
+  fuelMix: FuelMix[];
+  areaLoads: AreaLoad[];
+}
+
+interface HistoryChartPoint {
+  observedAt: string;
+  value: number;
+}
+
 interface FuelDefinition {
   key: string;
   label: string;
@@ -201,6 +216,13 @@ const regionMeta: Record<RegionKey, { label: string; color: string }> = {
   central: { label: "中部", color: "#35b779" },
   south: { label: "南部", color: "#f2a93b" },
   east: { label: "東部", color: "#8a79db" },
+};
+
+const historyMetricMeta: Record<HistoryMetric, { label: string; unit: string; color: string }> = {
+  load: { label: "總用電", unit: "MW", color: "var(--blue)" },
+  reserve: { label: "備轉容量率", unit: "%", color: "var(--green)" },
+  solar: { label: "太陽能", unit: "MW", color: "var(--yellow)" },
+  renewable: { label: "再生能源", unit: "MW", color: "#35b779" },
 };
 
 const countyRegions: Record<string, RegionKey> = {
@@ -337,6 +359,40 @@ function dateKey(offsetDays = 0) {
   }).formatToParts(date);
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${values.year}-${values.month}-${values.day}`;
+}
+
+function historyRangeDays(start: string, end: string) {
+  const startAt = new Date(`${start}T00:00:00+08:00`).getTime();
+  const endAt = new Date(`${end}T00:00:00+08:00`).getTime();
+  return Math.floor((endAt - startAt) / 86400000) + 1;
+}
+
+function historyRangeQuery(start: string, end: string) {
+  const startAt = new Date(`${start}T00:00:00+08:00`).toISOString();
+  const endAt = new Date(`${end}T23:59:59+08:00`).toISOString();
+  return `start=${encodeURIComponent(startAt)}&end=${encodeURIComponent(endAt)}&limit=5000`;
+}
+
+function formatHistoryDate(iso: string, includeTime = false) {
+  return new Intl.DateTimeFormat("zh-TW", {
+    timeZone: TAIPEI_TIME_ZONE,
+    month: "numeric",
+    day: "numeric",
+    ...(includeTime ? { hour: "2-digit", minute: "2-digit", hour12: false } : {}),
+  }).format(new Date(iso));
+}
+
+function average(values: number[]) {
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function downsampleHistory(points: HistoryChartPoint[], maximum = 360) {
+  if (points.length <= maximum) return points;
+  return Array.from({ length: maximum }, (_, index) => {
+    const sourceIndex = Math.round((index / (maximum - 1)) * (points.length - 1));
+    return points[sourceIndex];
+  });
 }
 
 function formatNumber(value: number | null | undefined, digits = 0) {
@@ -503,6 +559,7 @@ function Header({
     ["今日電力", "#today"],
     ["能源組成", "#mix"],
     ["區域供需", "#regions"],
+    ["歷史資料", "#history"],
     ["發電機組", "#generators"],
   ];
   return (
@@ -1066,6 +1123,438 @@ function SolarInsight({ history, current }: { history: FuelMix[]; current: FuelM
   );
 }
 
+function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; metric: HistoryMetric }) {
+  const sampledPoints = useMemo(() => downsampleHistory(points), [points]);
+  const [selectedIndex, setSelectedIndex] = useState(Math.max(0, sampledPoints.length - 1));
+  const config = historyMetricMeta[metric];
+
+  useEffect(() => {
+    setSelectedIndex(Math.max(0, sampledPoints.length - 1));
+  }, [metric, sampledPoints]);
+
+  if (!sampledPoints.length) {
+    return (
+      <div className="history-chart-empty">
+        <Info size={19} />
+        <span>這個指標在所選區間內尚無資料</span>
+      </div>
+    );
+  }
+
+  const width = 980;
+  const height = 334;
+  const left = 66;
+  const right = 24;
+  const top = 24;
+  const bottom = 44;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const values = sampledPoints.map((point) => point.value);
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const padding = Math.max((rawMax - rawMin) * 0.12, rawMax * 0.035, metric === "reserve" ? 0.5 : 1);
+  const minValue = Math.max(0, rawMin - padding);
+  const maxValue = rawMax + padding;
+  const valueRange = Math.max(maxValue - minValue, 1);
+  const pointX = (index: number) => left + (index / Math.max(1, sampledPoints.length - 1)) * plotWidth;
+  const pointY = (value: number) => top + (1 - (value - minValue) / valueRange) * plotHeight;
+  const line = sampledPoints
+    .map((point, index) => `${index === 0 ? "M" : "L"}${pointX(index).toFixed(1)},${pointY(point.value).toFixed(1)}`)
+    .join(" ");
+  const area = `${line} L${pointX(sampledPoints.length - 1).toFixed(1)},${top + plotHeight} L${left},${top + plotHeight} Z`;
+  const safeIndex = Math.min(selectedIndex, sampledPoints.length - 1);
+  const selected = sampledPoints[safeIndex];
+  const cursorX = pointX(safeIndex);
+  const cursorY = pointY(selected.value);
+  const tooltipX = Math.min(Math.max(cursorX > width * 0.72 ? cursorX - 238 : cursorX + 14, left), width - 238);
+  const showTimeOnAxis = new Date(sampledPoints.at(-1)!.observedAt).getTime() - new Date(sampledPoints[0].observedAt).getTime() < 36 * 3600000;
+
+  const selectFromPointer = (event: PointerEvent<SVGRectElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+    setSelectedIndex(Math.round(ratio * (sampledPoints.length - 1)));
+  };
+
+  const selectFromKeyboard = (event: KeyboardEvent<SVGRectElement>) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "ArrowLeft") setSelectedIndex((index) => Math.max(0, index - 1));
+    if (event.key === "ArrowRight") setSelectedIndex((index) => Math.min(sampledPoints.length - 1, index + 1));
+    if (event.key === "Home") setSelectedIndex(0);
+    if (event.key === "End") setSelectedIndex(sampledPoints.length - 1);
+  };
+
+  return (
+    <div className="history-chart-shell" style={{ "--history-accent": config.color } as CSSProperties}>
+      <svg className="history-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${config.label}歷史趨勢圖`}>
+        <defs>
+          <linearGradient id={`history-area-${metric}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--history-accent)" stopOpacity="0.24" />
+            <stop offset="100%" stopColor="var(--history-accent)" stopOpacity="0.015" />
+          </linearGradient>
+        </defs>
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+          const y = top + ratio * plotHeight;
+          const tickValue = maxValue - ratio * valueRange;
+          return (
+            <g key={ratio}>
+              <line x1={left} x2={width - right} y1={y} y2={y} className="history-grid-line" />
+              <text x={left - 11} y={y + 4} textAnchor="end" className="history-axis-label">
+                {metric === "reserve" ? tickValue.toFixed(1) : tickValue >= 1000 ? `${(tickValue / 1000).toFixed(tickValue >= 10000 ? 0 : 1)}k` : formatNumber(tickValue)}
+              </text>
+            </g>
+          );
+        })}
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+          const index = Math.min(sampledPoints.length - 1, Math.round(ratio * (sampledPoints.length - 1)));
+          const point = sampledPoints[index];
+          return (
+            <text key={ratio} x={pointX(index)} y={height - 13} textAnchor={ratio === 0 ? "start" : ratio === 1 ? "end" : "middle"} className="history-axis-label">
+              {formatHistoryDate(point.observedAt, showTimeOnAxis)}
+            </text>
+          );
+        })}
+        <path d={area} fill={`url(#history-area-${metric})`} />
+        <path d={line} className="history-trend-line" />
+        <g className="history-chart-cursor" pointerEvents="none">
+          <line x1={cursorX} x2={cursorX} y1={top} y2={top + plotHeight} />
+          <circle cx={cursorX} cy={cursorY} r="6" />
+          <g transform={`translate(${tooltipX} 34)`}>
+            <rect width="224" height="88" rx="14" />
+            <text x="15" y="25" className="history-tooltip-time">{formatHistoryDate(selected.observedAt, true)}</text>
+            <text x="15" y="58" className="history-tooltip-label">{config.label}</text>
+            <text x="209" y="58" textAnchor="end" className="history-tooltip-value">
+              {formatNumber(selected.value, metric === "reserve" ? 1 : 0)} {config.unit}
+            </text>
+            <text x="15" y="76" className="history-tooltip-hint">拖曳或使用方向鍵探索</text>
+          </g>
+        </g>
+        <rect
+          x={left}
+          y={top}
+          width={plotWidth}
+          height={plotHeight}
+          className="history-chart-hit-area"
+          fill="transparent"
+          onPointerMove={selectFromPointer}
+          onPointerDown={selectFromPointer}
+          onKeyDown={selectFromKeyboard}
+          tabIndex={0}
+          role="slider"
+          aria-label={`探索${config.label}歷史趨勢`}
+          aria-valuemin={0}
+          aria-valuemax={sampledPoints.length - 1}
+          aria-valuenow={safeIndex}
+          aria-valuetext={`${formatHistoryDate(selected.observedAt, true)}，${config.label} ${formatNumber(selected.value, metric === "reserve" ? 1 : 0)} ${config.unit}`}
+        />
+      </svg>
+    </div>
+  );
+}
+
+function HistorySection() {
+  const initialStart = dateKey(-6);
+  const initialEnd = dateKey(0);
+  const [preset, setPreset] = useState<HistoryPreset>("week");
+  const [draftStart, setDraftStart] = useState(initialStart);
+  const [draftEnd, setDraftEnd] = useState(initialEnd);
+  const [appliedStart, setAppliedStart] = useState(initialStart);
+  const [appliedEnd, setAppliedEnd] = useState(initialEnd);
+  const [metric, setMetric] = useState<HistoryMetric>("load");
+  const [historyData, setHistoryData] = useState<HistoryData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let isActive = true;
+    const timeout = window.setTimeout(() => controller.abort(), 20000);
+    const query = historyRangeQuery(appliedStart, appliedEnd);
+    setIsLoading(true);
+    setLoadError(null);
+
+    void Promise.all([
+      getJson<PowerSnapshot[]>(`/taipower/power-snapshots?${query}`, controller.signal),
+      getJson<FuelMix[]>(`/taipower/fuel-mix?${query}`, controller.signal),
+      getJson<AreaLoad[]>(`/taipower/area-loads?${query}`, controller.signal),
+    ])
+      .then(([power, fuelMix, areaLoads]) => {
+        const byPublishedTime = (a: PowerSnapshot, b: PowerSnapshot) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime();
+        const byObservedTime = <T extends { observed_at: string }>(a: T, b: T) => new Date(a.observed_at).getTime() - new Date(b.observed_at).getTime();
+        setHistoryData({
+          power: [...power].sort(byPublishedTime),
+          fuelMix: [...fuelMix].sort(byObservedTime),
+          areaLoads: [...areaLoads].sort(byObservedTime),
+        });
+      })
+      .catch((error: unknown) => {
+        if (!isActive) return;
+        setLoadError(controller.signal.aborted ? "歷史資料讀取逾時" : error instanceof Error ? error.message : "歷史資料讀取失敗");
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
+        if (isActive) setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [appliedEnd, appliedStart, reloadKey]);
+
+  const selectPreset = (nextPreset: Exclude<HistoryPreset, "custom">) => {
+    const days = nextPreset === "today" ? 1 : nextPreset === "week" ? 7 : 30;
+    const start = dateKey(-(days - 1));
+    const end = dateKey(0);
+    setPreset(nextPreset);
+    setDraftStart(start);
+    setDraftEnd(end);
+    setRangeError(null);
+    setAppliedStart(start);
+    setAppliedEnd(end);
+  };
+
+  const applyCustomRange = () => {
+    if (!draftStart || !draftEnd) {
+      setRangeError("請選擇完整的開始與結束日期。");
+      return;
+    }
+    if (draftStart > draftEnd) {
+      setRangeError("開始日期不能晚於結束日期。");
+      return;
+    }
+    if (historyRangeDays(draftStart, draftEnd) > 30) {
+      setRangeError("為了保持圖表流暢，每次最多查看 30 天；你仍可選擇任意一段 30 天區間。");
+      return;
+    }
+    setRangeError(null);
+    setPreset("custom");
+    setAppliedStart(draftStart);
+    setAppliedEnd(draftEnd);
+  };
+
+  const hasData = Boolean(historyData && (historyData.power.length || historyData.fuelMix.length || historyData.areaLoads.length));
+  const averageLoad = average(historyData?.areaLoads.map((point) => point.total_load_mw) ?? []);
+  const peakLoad = historyData?.areaLoads.reduce<AreaLoad | null>((peak, point) => (!peak || point.total_load_mw > peak.total_load_mw ? point : peak), null) ?? null;
+  const reserveValues = historyData?.power
+    .filter((point) => point.forecast_peak_reserve_rate_percent !== null)
+    .map((point) => ({ observedAt: point.published_at, value: point.forecast_peak_reserve_rate_percent as number })) ?? [];
+  const minimumReserve = reserveValues.reduce<HistoryChartPoint | null>((minimum, point) => (!minimum || point.value < minimum.value ? point : minimum), null);
+  const renewableShares = historyData?.fuelMix
+    .filter((point) => point.total_mw > 0)
+    .map((point) => ((point.solar_mw + point.wind_mw + point.hydro_mw + point.other_renewable_mw) / point.total_mw) * 100) ?? [];
+  const averageRenewableShare = average(renewableShares);
+
+  const chartPoints = useMemo<HistoryChartPoint[]>(() => {
+    if (!historyData) return [];
+    if (metric === "load") {
+      return historyData.areaLoads.map((point) => ({ observedAt: point.observed_at, value: point.total_load_mw }));
+    }
+    if (metric === "reserve") {
+      return historyData.power
+        .filter((point) => point.forecast_peak_reserve_rate_percent !== null)
+        .map((point) => ({ observedAt: point.published_at, value: point.forecast_peak_reserve_rate_percent as number }));
+    }
+    if (metric === "solar") {
+      return historyData.fuelMix.map((point) => ({ observedAt: point.observed_at, value: point.solar_mw }));
+    }
+    return historyData.fuelMix.map((point) => ({
+      observedAt: point.observed_at,
+      value: point.solar_mw + point.wind_mw + point.hydro_mw + point.other_renewable_mw,
+    }));
+  }, [historyData, metric]);
+
+  const averageFuelMix = useMemo(() => {
+    if (!historyData?.fuelMix.length) return [];
+    return fuelDefinitions.map((fuel) => ({
+      ...fuel,
+      value: average(historyData.fuelMix.map((point) => Math.max(0, fuel.getValue(point)))) ?? 0,
+    }));
+  }, [historyData]);
+  const averageFuelTotal = averageFuelMix.reduce((sum, fuel) => sum + fuel.value, 0);
+
+  const regionalAverages = useMemo(() => {
+    if (!historyData?.areaLoads.length) return [];
+    return (Object.keys(regionMeta) as RegionKey[]).map((key) => ({
+      key,
+      ...regionMeta[key],
+      value: average(historyData.areaLoads.map((point) => point[`${key}_load_mw` as keyof AreaLoad] as number)) ?? 0,
+    }));
+  }, [historyData]);
+  const regionalTotal = regionalAverages.reduce((sum, region) => sum + region.value, 0);
+
+  const coverageTimes = historyData
+    ? [
+        ...historyData.power.map((point) => point.published_at),
+        ...historyData.fuelMix.map((point) => point.observed_at),
+        ...historyData.areaLoads.map((point) => point.observed_at),
+      ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+    : [];
+  const coverageStart = coverageTimes[0];
+  const coverageEnd = coverageTimes.at(-1);
+  const sampleCount = historyData ? Math.max(historyData.power.length, historyData.fuelMix.length, historyData.areaLoads.length) : 0;
+
+  return (
+    <section className="panel history-section" id="history" aria-labelledby="history-title" aria-busy={isLoading}>
+      <div className="history-heading">
+        <div>
+          <span className="section-kicker"><HistoryIcon size={15} /> 長期視角</span>
+          <h2 id="history-title">歷史電力總覽</h2>
+          <p>把用電、備轉容量、發電結構與區域需求放在同一個時間軸查看。</p>
+        </div>
+        <span className={`history-state ${isLoading ? "is-loading" : hasData ? "is-ready" : "is-empty"}`}>
+          {isLoading ? <LoaderCircle size={15} className="is-spinning" /> : <CalendarDays size={15} />}
+          {isLoading ? "讀取中" : hasData ? `${sampleCount.toLocaleString("zh-TW")} 筆取樣` : "尚無資料"}
+        </span>
+      </div>
+
+      <div className="history-toolbar">
+        <div className="history-presets" role="group" aria-label="快速選擇歷史期間">
+          {([
+            ["today", "今日"],
+            ["week", "7 天"],
+            ["month", "30 天"],
+          ] as Array<[Exclude<HistoryPreset, "custom">, string]>).map(([value, label]) => (
+            <button key={value} className={preset === value ? "is-active" : ""} type="button" onClick={() => selectPreset(value)}>{label}</button>
+          ))}
+        </div>
+        <form className="history-date-form" onSubmit={(event) => { event.preventDefault(); applyCustomRange(); }}>
+          <label>
+            <span>開始</span>
+            <input type="date" value={draftStart} max={dateKey(0)} onChange={(event) => { setDraftStart(event.target.value); setPreset("custom"); }} />
+          </label>
+          <span className="history-date-arrow" aria-hidden="true">→</span>
+          <label>
+            <span>結束</span>
+            <input type="date" value={draftEnd} max={dateKey(0)} onChange={(event) => { setDraftEnd(event.target.value); setPreset("custom"); }} />
+          </label>
+          <button type="submit" disabled={isLoading && appliedStart === draftStart && appliedEnd === draftEnd}>套用區間</button>
+        </form>
+      </div>
+      {rangeError && <p className="history-range-error" role="alert"><Info size={14} /> {rangeError}</p>}
+      {loadError && (
+        <div className="history-load-error" role="alert">
+          <Info size={16} /> 歷史資料暫時無法讀取。
+          <button type="button" onClick={() => setReloadKey((key) => key + 1)}>再試一次</button>
+        </div>
+      )}
+
+      {isLoading && !historyData ? (
+        <div className="history-loading-state" role="status">
+          <LoaderCircle size={24} className="is-spinning" />
+          <strong>正在整理歷史電力資料</strong>
+          <span>同時讀取用電、備轉容量與發電結構。</span>
+        </div>
+      ) : !hasData ? (
+        <div className="history-empty-state">
+          <CalendarDays size={28} />
+          <strong>這段期間還沒有歷史資料</strong>
+          <span>請換一個日期區間；資料會隨每 10 分鐘更新持續累積。</span>
+        </div>
+      ) : (
+        <>
+          {coverageStart && coverageEnd && (
+            <div className="history-coverage">
+              <CalendarDays size={15} />
+              實際資料涵蓋 <strong>{formatHistoryDate(coverageStart, true)}</strong> 至 <strong>{formatHistoryDate(coverageEnd, true)}</strong>
+              <span>所選區間：{appliedStart.replaceAll("-", "/")}–{appliedEnd.replaceAll("-", "/")}</span>
+            </div>
+          )}
+
+          <div className="history-summary" aria-label="歷史期間摘要">
+            <button type="button" className={metric === "load" ? "is-active" : ""} onClick={() => setMetric("load")}>
+              <span className="history-stat-icon is-blue"><Gauge size={19} /></span>
+              <span><small>平均用電</small><strong>{formatNumber(averageLoad)} <em>MW</em></strong><i>期間所有取樣平均</i></span>
+            </button>
+            <button type="button" className={metric === "load" ? "is-active" : ""} onClick={() => setMetric("load")}>
+              <span className="history-stat-icon is-orange"><ArrowUpRight size={19} /></span>
+              <span><small>最高用電</small><strong>{formatNumber(peakLoad?.total_load_mw)} <em>MW</em></strong><i>{peakLoad ? formatHistoryDate(peakLoad.observed_at, true) : "無資料"}</i></span>
+            </button>
+            <button type="button" className={metric === "reserve" ? "is-active" : ""} onClick={() => setMetric("reserve")}>
+              <span className="history-stat-icon is-green"><BatteryCharging size={19} /></span>
+              <span><small>最低備轉容量率</small><strong>{formatNumber(minimumReserve?.value, 1)} <em>%</em></strong><i>{minimumReserve ? formatHistoryDate(minimumReserve.observedAt, true) : "無資料"}</i></span>
+            </button>
+            <button type="button" className={metric === "renewable" ? "is-active" : ""} onClick={() => setMetric("renewable")}>
+              <span className="history-stat-icon is-renewable"><Leaf size={19} /></span>
+              <span><small>再生能源平均占比</small><strong>{formatNumber(averageRenewableShare, 1)} <em>%</em></strong><i>太陽能、風力、水力及其他</i></span>
+            </button>
+          </div>
+
+          <div className="history-content-grid">
+            <article className="history-trend-card">
+              <div className="history-subheading">
+                <div>
+                  <span>期間趨勢</span>
+                  <strong>{historyMetricMeta[metric].label}</strong>
+                </div>
+                <div className="history-metric-tabs" role="group" aria-label="切換歷史趨勢指標">
+                  {(Object.keys(historyMetricMeta) as HistoryMetric[]).map((value) => (
+                    <button key={value} type="button" className={metric === value ? "is-active" : ""} onClick={() => setMetric(value)} disabled={value === "reserve" && !reserveValues.length}>
+                      {historyMetricMeta[value].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <HistoryTrendChart points={chartPoints} metric={metric} />
+            </article>
+
+            <article className="history-mix-card">
+              <div className="history-subheading">
+                <div><span>期間平均</span><strong>發電結構</strong></div>
+                <small>平均 MW</small>
+              </div>
+              {averageFuelMix.length ? (
+                <>
+                  <div className="history-mix-bar" aria-label="歷史期間平均發電結構">
+                    {averageFuelMix.map((fuel) => <span key={fuel.key} style={{ width: `${averageFuelTotal ? (fuel.value / averageFuelTotal) * 100 : 0}%`, background: fuel.color }} />)}
+                  </div>
+                  <div className="history-mix-list">
+                    {averageFuelMix.map((fuel) => {
+                      const Icon = fuel.icon;
+                      return (
+                        <div key={fuel.key}>
+                          <span style={{ color: fuel.color }}><Icon size={16} /> {fuel.label}</span>
+                          <strong>{formatNumber(fuel.value)} MW</strong>
+                          <small>{averageFuelTotal ? ((fuel.value / averageFuelTotal) * 100).toFixed(1) : "0.0"}%</small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : <div className="history-side-empty">此區間沒有燃料結構資料</div>}
+            </article>
+          </div>
+
+          <article className="history-region-card">
+            <div className="history-subheading">
+              <div><span>區域比較</span><strong>期間平均用電</strong></div>
+              <small>各區占全台平均用電比例</small>
+            </div>
+            {regionalAverages.length ? (
+              <div className="history-region-list">
+                {regionalAverages.map((region) => {
+                  const share = regionalTotal ? (region.value / regionalTotal) * 100 : 0;
+                  return (
+                    <div key={region.key} style={{ "--region-color": region.color } as CSSProperties}>
+                      <span><i />{region.label}</span>
+                      <span className="history-region-track"><i style={{ width: `${share}%` }} /></span>
+                      <strong>{formatNumber(region.value)} MW</strong>
+                      <small>{share.toFixed(1)}%</small>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : <div className="history-side-empty">此區間沒有區域用電資料</div>}
+          </article>
+        </>
+      )}
+    </section>
+  );
+}
+
 function GeneratorSection({ generators }: { generators: GeneratorRecord[] }) {
   const units = useMemo(() => generators.filter((record) => !record.is_summary), [generators]);
   const [query, setQuery] = useState("");
@@ -1313,6 +1802,7 @@ export function PowerDashboard() {
           <div className="insight-stat"><Leaf size={18} /><span>再生能源<strong>{formatNumber(currentMix.solar_mw + currentMix.wind_mw + currentMix.hydro_mw + currentMix.other_renewable_mw)} MW</strong></span></div>
           <a href="#mix">探索能源組成 <ArrowRight size={15} /></a>
         </aside>
+        <HistorySection />
         <GeneratorSection generators={data.generators} />
       </main>
       <Footer updatedAt={data.power.published_at} />
