@@ -24,5 +24,10 @@ test("server-renders the Taiwan power dashboard shell", async () => {
   assert.match(html, /現在，台灣用了多少電？/);
   assert.match(html, /區域電力供需/);
   assert.match(html, /發電機組即時狀態/);
+  assert.match(html, /機組狀態顏色說明/);
+  assert.match(html, /unit-status is-running/);
+  assert.match(html, /unit-status is-limited/);
+  assert.match(html, /unit-status is-outage/);
+  assert.match(html, /unit-status is-stopped/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });

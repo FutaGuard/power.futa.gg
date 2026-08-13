@@ -48,6 +48,7 @@ const TAIPEI_TIME_ZONE = "Asia/Taipei";
 type ConnectionState = "loading" | "live" | "offline";
 type RegionKey = "north" | "central" | "south" | "east";
 type GeneratorFilter = "all" | "running" | "stopped" | "limited";
+type GeneratorStatusTone = "is-running" | "is-limited" | "is-outage" | "is-alert" | "is-stopped";
 type LoadMode = "total" | "regions";
 
 interface PowerSnapshot {
@@ -383,6 +384,33 @@ function getReserveLabel(rate: number | null, indicator: string | null) {
   if (indicator === "O") return "供電警戒";
   if (indicator === "R") return "限電警戒";
   return "供電資訊更新中";
+}
+
+function getGeneratorDisplayStatus(unit: GeneratorRecord): {
+  label: string;
+  tone: GeneratorStatusTone;
+  description: string;
+} {
+  const generation = unit.net_generation_mw ?? 0;
+  const note = unit.status?.trim();
+
+  if (note) {
+    if (/^(正常|運轉中|發電中)$/.test(note)) {
+      return { label: note, tone: "is-running", description: "正常發電" };
+    }
+    if (/(故障|異常|事故|跳機|破管|緊急|警報|解聯)/.test(note)) {
+      return { label: note, tone: "is-alert", description: "異常狀態" };
+    }
+    if (/(停機|檢修|歲修|除役|停用|待機|停役|暫停)/.test(note)) {
+      return { label: note, tone: "is-outage", description: "停機或檢修" };
+    }
+    return { label: note, tone: "is-limited", description: "有運轉註記" };
+  }
+
+  if (generation > 0) {
+    return { label: "發電中", tone: "is-running", description: "正常發電" };
+  }
+  return { label: "未發電", tone: "is-stopped", description: "目前沒有發電" };
 }
 
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -1093,9 +1121,15 @@ function GeneratorSection({ generators }: { generators: GeneratorRecord[] }) {
             ["stopped", "未發電"],
             ["limited", "有註記"],
           ] as Array<[GeneratorFilter, string]>).map(([value, label]) => (
-            <button key={value} type="button" onClick={() => { setFilter(value); setVisibleCount(12); }} className={filter === value ? "is-active" : ""} aria-pressed={filter === value}>{label}</button>
+            <button key={value} type="button" onClick={() => { setFilter(value); setVisibleCount(12); }} className={`filter-${value} ${filter === value ? "is-active" : ""}`} aria-pressed={filter === value}>{label}</button>
           ))}
         </div>
+      </div>
+      <div className="generator-status-legend" aria-label="機組狀態顏色說明">
+        <span className="unit-status is-running">發電中</span>
+        <span className="unit-status is-limited">有註記</span>
+        <span className="unit-status is-outage">停機／檢修</span>
+        <span className="unit-status is-stopped">未發電</span>
       </div>
       <div className="generator-table-wrap">
         <table className="generator-table">
@@ -1107,6 +1141,7 @@ function GeneratorSection({ generators }: { generators: GeneratorRecord[] }) {
               const isExpanded = expanded === unit.id;
               const generation = unit.net_generation_mw ?? 0;
               const utilization = unit.utilization_percent ?? (unit.installed_capacity_mw ? (generation / unit.installed_capacity_mw) * 100 : 0);
+              const displayStatus = getGeneratorDisplayStatus(unit);
               return (
                 <tr key={unit.id} className={isExpanded ? "is-expanded" : ""}>
                   <td colSpan={7}>
@@ -1116,7 +1151,7 @@ function GeneratorSection({ generators }: { generators: GeneratorRecord[] }) {
                       <span className="unit-number" data-label="淨發電量"><strong>{formatNumber(generation, 1)}</strong> MW</span>
                       <span className="unit-number" data-label="裝置容量">{formatNumber(unit.installed_capacity_mw, 1)} MW</span>
                       <span className="utilization-cell" data-label="利用率"><span><i style={{ width: `${Math.min(100, Math.max(0, utilization))}%` }} /></span><strong>{formatNumber(utilization, 1)}%</strong></span>
-                      <span data-label="狀態"><span className={`unit-status ${generation > 0 ? "is-running" : "is-stopped"}`}>{unit.status ?? (generation > 0 ? "發電中" : "未發電")}</span></span>
+                      <span data-label="狀態"><span className={`unit-status ${displayStatus.tone}`} aria-label={`${displayStatus.description}：${displayStatus.label}`}>{displayStatus.label}</span></span>
                       <ChevronDown size={17} className="row-chevron" />
                     </button>
                     {isExpanded && (
