@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   ArrowUpRight,
   BatteryCharging,
   Bolt,
@@ -519,18 +518,6 @@ function areaPath(points: AreaLoad[], max: number) {
   return `${line} L${lastX.toFixed(1)},257 L${firstX.toFixed(1)},257 Z`;
 }
 
-function miniLinePath(values: number[], width = 246, height = 72) {
-  if (!values.length) return "";
-  const maximum = Math.max(...values, 1);
-  return values
-    .map((value, index) => {
-      const x = (index / Math.max(1, values.length - 1)) * width;
-      const y = height - (value / maximum) * (height - 8) - 4;
-      return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-}
-
 function PowerMark({ size = 42 }: { size?: number }) {
   return (
     <span className="power-mark" style={{ "--mark-size": `${size}px` } as CSSProperties}>
@@ -811,13 +798,7 @@ function LoadChart({
   );
 }
 
-function FuelMixCard({
-  mix,
-  history,
-}: {
-  mix: FuelMix;
-  history: FuelMix[];
-}) {
+function FuelMixCard({ mix }: { mix: FuelMix }) {
   const [focusedFuel, setFocusedFuel] = useState<string | null>(null);
   const values = fuelDefinitions.map((fuel) => ({ ...fuel, value: Math.max(0, fuel.getValue(mix)) }));
   const total = values.reduce((sum, fuel) => sum + fuel.value, 0) || 1;
@@ -832,8 +813,6 @@ function FuelMixCard({
     })
     .join(", ");
   const focused = values.find((fuel) => fuel.key === focusedFuel) ?? null;
-  const trendFuel = focused ?? values.find((fuel) => fuel.key === "solar")!;
-  const trendValues = history.map((record) => trendFuel.getValue(record));
 
   return (
     <article className="panel mix-card" id="mix">
@@ -887,15 +866,6 @@ function FuelMixCard({
             );
           })}
         </div>
-      </div>
-      <div className="fuel-trend">
-        <div>
-          <span style={{ color: trendFuel.color }}>{trendFuel.label}今日曲線</span>
-          <strong>{formatNumber(trendFuel.value)} MW</strong>
-        </div>
-        <svg viewBox="0 0 246 72" role="img" aria-label={`${trendFuel.label}今日發電曲線`}>
-          <path d={miniLinePath(trendValues)} style={{ stroke: trendFuel.color }} />
-        </svg>
       </div>
     </article>
   );
@@ -1082,43 +1052,6 @@ function RegionCard({ area }: { area: AreaSnapshot }) {
           <p className="region-note"><Info size={13} /> 流向依各區發電與用電差額推估，並非台電即時潮流量。</p>
         </div>
       </div>
-    </article>
-  );
-}
-
-function SolarInsight({ history, current }: { history: FuelMix[]; current: FuelMix }) {
-  const solarValues = history.map((mix) => mix.solar_mw);
-  const peak = history.reduce((best, item) => (item.solar_mw > best.solar_mw ? item : best), current);
-  const accumulatedGwh = history.reduce((sum, item, index) => {
-    if (index === 0) return sum;
-    const previous = history[index - 1];
-    const hours = (new Date(item.observed_at).getTime() - new Date(previous.observed_at).getTime()) / 3600000;
-    return sum + ((previous.solar_mw + item.solar_mw) / 2) * Math.max(0, Math.min(hours, 0.5));
-  }, 0) / 1000;
-  const share = current.total_mw > 0 ? (current.solar_mw / current.total_mw) * 100 : 0;
-
-  return (
-    <article className="panel solar-card">
-      <div className="solar-card-heading">
-        <span className="sun-badge"><Sun size={21} /></span>
-        <div><span>太陽能即時發電</span><strong>{formatNumber(current.solar_mw)} <small>MW</small></strong></div>
-      </div>
-      <span className="solar-share">占目前用電 <strong>{share.toFixed(1)}%</strong></span>
-      <svg className="solar-spark" viewBox="0 0 246 72" role="img" aria-label="今日太陽能發電曲線">
-        <defs>
-          <linearGradient id="solarArea" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#f5b900" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#f5b900" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={`${miniLinePath(solarValues)} L246,72 L0,72 Z`} fill="url(#solarArea)" />
-        <path d={miniLinePath(solarValues)} />
-      </svg>
-      <dl className="solar-stats">
-        <div><dt>今日累積</dt><dd>{accumulatedGwh.toFixed(1)} GWh</dd></div>
-        <div><dt>今日最高</dt><dd>{formatNumber(peak.solar_mw)} MW</dd></div>
-        <div><dt>高峰時間</dt><dd>{formatTime(peak.observed_at)}</dd></div>
-      </dl>
     </article>
   );
 }
@@ -1736,7 +1669,6 @@ export function PowerDashboard() {
   };
 
   const currentMix = nearestByTime(data.fuelMix, cursorTime) ?? data.fuelMix[data.fuelMix.length - 1];
-  const solarShare = currentMix.total_mw > 0 ? (currentMix.solar_mw / currentMix.total_mw) * 100 : 0;
 
   return (
     <div className="power-app" id="top">
@@ -1787,21 +1719,11 @@ export function PowerDashboard() {
             </div>
             <LoadChart data={data.areaLoads} cursorTime={cursorTime} onCursorChange={setCursorTime} mode={loadMode} />
           </article>
-          <FuelMixCard mix={currentMix} history={data.fuelMix} />
+          <FuelMixCard mix={currentMix} />
         </section>
-        <section className="region-grid" aria-label="區域電力與太陽能洞察">
+        <section className="region-grid" aria-label="區域電力供需">
           <RegionCard area={data.areaSnapshot} />
-          <SolarInsight history={data.fuelMix} current={currentMix} />
         </section>
-        <aside className="insight-strip">
-          <span className="insight-icon"><Sun size={28} /></span>
-          <div><small>即時洞察</small><strong>太陽能正供應全台 <em>{solarShare.toFixed(1)}%</em> 用電</strong></div>
-          <span className="insight-divider" />
-          <div className="insight-stat"><ArrowUpRight size={18} /><span>即時發電<strong>{formatNumber(currentMix.solar_mw)} MW</strong></span></div>
-          <span className="insight-divider" />
-          <div className="insight-stat"><Leaf size={18} /><span>再生能源<strong>{formatNumber(currentMix.solar_mw + currentMix.wind_mw + currentMix.hydro_mw + currentMix.other_renewable_mw)} MW</strong></span></div>
-          <a href="#mix">探索能源組成 <ArrowRight size={15} /></a>
-        </aside>
         <HistorySection />
         <GeneratorSection generators={data.generators} />
       </main>

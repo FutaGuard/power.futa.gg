@@ -757,7 +757,6 @@ html[data-theme="dark"] .hero-section {
 .load-card,
 .mix-card,
 .region-card,
-.solar-card,
 .history-section,
 .generator-section {
   scroll-margin-top: 106px;
@@ -1119,48 +1118,9 @@ html[data-theme="dark"] .hero-section {
   text-align: right;
 }
 
-.fuel-trend {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-height: 78px;
-  margin-top: auto;
-  padding-top: 15px;
-  border-top: 1px solid var(--line);
-}
-
-.fuel-trend > div {
-  display: grid;
-  min-width: 112px;
-}
-
-.fuel-trend span {
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.fuel-trend strong {
-  margin-top: 5px;
-  font-family: var(--font-mono);
-  font-size: 19px;
-}
-
-.fuel-trend svg {
-  width: 100%;
-  height: 57px;
-}
-
-.fuel-trend path {
-  fill: none;
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
 .region-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(290px, 0.55fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 15px;
 }
 
@@ -1461,206 +1421,6 @@ html[data-theme="dark"] .county-shape {
 
 .region-note svg {
   flex: 0 0 auto;
-}
-
-.solar-card {
-  display: flex;
-  min-height: 486px;
-  flex-direction: column;
-  padding: 22px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 88% 5%, rgba(255, 202, 43, 0.16), transparent 135px),
-    var(--surface);
-}
-
-.solar-card-heading {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.sun-badge,
-.insight-icon {
-  display: grid;
-  width: 45px;
-  height: 45px;
-  flex: 0 0 auto;
-  place-items: center;
-  color: var(--yellow);
-  border-radius: 50%;
-  background: color-mix(in oklab, var(--yellow) 12%, var(--surface-solid));
-}
-
-.solar-card-heading > div {
-  display: grid;
-}
-
-.solar-card-heading span {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.solar-card-heading strong {
-  margin-top: 3px;
-  color: var(--orange);
-  font-family: var(--font-mono);
-  font-size: 28px;
-  letter-spacing: -0.06em;
-}
-
-.solar-card-heading small {
-  font-family: var(--font-sans);
-  font-size: 12px;
-}
-
-.solar-share {
-  margin: 14px 0 0 56px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.solar-share strong {
-  color: var(--orange);
-  font-family: var(--font-mono);
-  font-size: 13px;
-}
-
-.solar-spark {
-  width: 100%;
-  height: 135px;
-  margin-top: 26px;
-  overflow: visible;
-  border-bottom: 1px solid var(--line);
-}
-
-.solar-spark > path:last-child {
-  fill: none;
-  stroke: var(--yellow);
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.solar-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 9px;
-  margin: auto 0 0;
-}
-
-.solar-stats div {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-  min-height: 74px;
-  padding: 13px 10px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: color-mix(in oklab, var(--surface-solid) 68%, transparent);
-}
-
-.solar-stats dt {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.solar-stats dd {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.insight-strip {
-  display: flex;
-  align-items: center;
-  gap: 17px;
-  min-height: 92px;
-  padding: 14px 20px;
-  overflow: hidden;
-  border: 1px solid color-mix(in oklab, var(--yellow) 26%, var(--line));
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at 92% 95%, rgba(95, 170, 95, 0.18), transparent 170px),
-    linear-gradient(100deg, color-mix(in oklab, var(--yellow) 5%, var(--surface-solid)), var(--surface));
-  box-shadow: var(--shadow);
-}
-
-.insight-strip > div:nth-child(2) {
-  display: grid;
-  min-width: 315px;
-}
-
-.insight-strip small {
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 750;
-}
-
-.insight-strip > div:nth-child(2) strong {
-  margin-top: 3px;
-  font-size: 18px;
-  letter-spacing: -0.035em;
-}
-
-.insight-strip em {
-  color: var(--orange);
-  font-family: var(--font-mono);
-  font-size: 27px;
-  font-style: normal;
-}
-
-.insight-divider {
-  width: 1px;
-  height: 44px;
-  background: var(--line);
-}
-
-.insight-stat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--blue);
-}
-
-.insight-stat:nth-of-type(2) {
-  color: var(--green);
-}
-
-.insight-stat span {
-  display: grid;
-  color: var(--muted);
-  font-size: 8px;
-}
-
-.insight-stat strong {
-  margin-top: 2px;
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 12px;
-}
-
-.insight-strip > a {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  padding: 9px 12px;
-  color: var(--blue);
-  border: 1px solid color-mix(in oklab, var(--blue) 24%, transparent);
-  border-radius: 10px;
-  background: var(--surface-solid);
-  font-size: 10px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.insight-strip > a:hover {
-  background: var(--blue-soft);
 }
 
 .history-section {
@@ -2778,7 +2538,6 @@ html[data-theme="dark"] .county-shape {
   .load-card,
   .mix-card { min-height: auto; }
   .mix-content { grid-template-columns: 260px 1fr; }
-  .fuel-trend { margin-top: 18px; }
 }
 
 @media (max-width: 1020px) {
@@ -2805,17 +2564,11 @@ html[data-theme="dark"] .county-shape {
   .load-card,
   .mix-card { min-height: auto; }
   .mix-content { grid-template-columns: 260px 1fr; }
-  .fuel-trend { margin-top: 18px; }
   .region-content { grid-template-columns: 320px 1fr; }
-  .solar-card { min-height: 340px; }
-  .solar-spark { height: 110px; }
   .generator-heading { flex-direction: column; }
   .generator-summary { width: 100%; }
   .generator-summary span { flex: 1; }
   .generator-summary span:last-child { display: grid; }
-  .insight-strip { flex-wrap: wrap; }
-  .insight-strip > div:nth-child(2) { min-width: 0; flex: 1; }
-  .insight-strip > a { margin-left: 0; }
   .history-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .history-content-grid { grid-template-columns: 1fr; }
   .history-mix-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2876,7 +2629,6 @@ html[data-theme="dark"] .county-shape {
   .load-card,
   .mix-card,
   .region-card,
-  .solar-card,
   .history-section,
   .generator-section { padding: 18px 14px; border-radius: 19px; }
   .load-heading { flex-direction: column; }
@@ -2891,14 +2643,6 @@ html[data-theme="dark"] .county-shape {
   .taiwan-map { height: 385px; }
   .map-tooltip { right: 8%; bottom: 24px; }
   .region-list { padding-top: 0; }
-  .solar-card { min-height: 330px; }
-  .insight-strip { gap: 10px; padding: 14px; border-radius: 17px; }
-  .insight-icon { width: 39px; height: 39px; }
-  .insight-strip > div:nth-child(2) strong { font-size: 14px; }
-  .insight-strip em { font-size: 21px; }
-  .insight-divider { display: none; }
-  .insight-stat { width: calc(50% - 5px); padding: 8px; border: 1px solid var(--line); border-radius: 10px; }
-  .insight-strip > a { width: 100%; justify-content: center; }
   .history-heading { flex-direction: column; gap: 12px; }
   .history-heading p { font-size: 13px; }
   .history-state { align-self: flex-start; }
@@ -3001,8 +2745,6 @@ html[data-theme="dark"] .county-shape {
   .region-list { grid-template-columns: 1fr; }
   .region-row { min-height: 96px; padding: 10px; }
   .flow-legend { gap: 7px; }
-  .solar-stats { grid-template-columns: 1fr; }
-  .solar-card { min-height: 470px; }
   .history-summary { grid-template-columns: 1fr; }
   .history-summary button { min-height: 82px; }
   .history-date-form { grid-template-columns: 1fr 1fr; }
@@ -3014,7 +2756,6 @@ html[data-theme="dark"] .county-shape {
   .history-region-list { grid-template-columns: 1fr; }
   .generator-summary { display: grid; grid-template-columns: repeat(2, 1fr); }
   .generator-summary span:last-child { display: grid; }
-  .insight-stat { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3039,6 +2780,5 @@ html[data-theme="dark"] .county-shape {
   .loading-toast { display: none !important; }
   .panel,
   .hero-section,
-  .site-header,
-  .insight-strip { box-shadow: none; }
+  .site-header { box-shadow: none; }
 }
