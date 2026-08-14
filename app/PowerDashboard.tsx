@@ -612,6 +612,20 @@ function CircularGauge({ value }: { value: number }) {
   );
 }
 
+function MetricInfo({ label, text }: { label: string; text: string }) {
+  return (
+    <details className="metric-info">
+      <summary aria-label={label}>
+        <Info size={14} aria-hidden="true" />
+      </summary>
+      <div className="metric-info-popover" role="note">
+        <strong>計算方式</strong>
+        <p>{text}</p>
+      </div>
+    </details>
+  );
+}
+
 function Hero({ power, connection }: { power: PowerSnapshot; connection: ConnectionState }) {
   const current = power.current_load_mw ?? 0;
   const utilization = power.current_utilization_percent ?? 0;
@@ -644,15 +658,10 @@ function Hero({ power, connection }: { power: PowerSnapshot; connection: Connect
         <div className="card-label">
           <CircleGauge size={17} />
           <span>系統供電利用率</span>
-          <details className="gauge-info">
-            <summary aria-label="查看系統供電利用率計算說明">
-              <Info size={14} aria-hidden="true" />
-            </summary>
-            <div className="gauge-info-popover" role="note">
-              <strong>計算方式</strong>
-              <p>使用率計算方式為：( 目前用電量 ÷ 供電能力 )×100%；其中供電能力為估算值，係參考機組狀況及再生能源發電量適時更新。</p>
-            </div>
-          </details>
+          <MetricInfo
+            label="查看系統供電利用率計算說明"
+            text="使用率計算方式為：( 目前用電量 ÷ 供電能力 )×100%；其中供電能力為估算值，係參考機組狀況及再生能源發電量適時更新。"
+          />
         </div>
         <CircularGauge value={utilization} />
         <div className="gauge-values">
@@ -662,7 +671,13 @@ function Hero({ power, connection }: { power: PowerSnapshot; connection: Connect
       </article>
       <article className="hero-stat peak-card">
         <div className="peak-icon"><Mountain size={22} /></div>
-        <div className="card-label">今日預估尖峰</div>
+        <div className="card-label">
+          <span>今日預估尖峰</span>
+          <MetricInfo
+            label="查看今日預估尖峰計算說明"
+            text="尖峰使用率 = ( 預估最高用電 ÷ 最大供電能力 )×100%"
+          />
+        </div>
         <strong className="peak-number">{formatNumber(power.forecast_peak_demand_mw)} <small>MW</small></strong>
         <span className="peak-time">{power.forecast_peak_hour_range ?? "—"}</span>
         <div className="peak-divider" />
@@ -694,7 +709,9 @@ function LoadChart({
   }, [data]);
   const cursorX = selected ? 54 + (timeMinutes(selected.observed_at) / 1440) * 688 : 54;
   const cursorY = selected ? 20 + (1 - selected.total_load_mw / maxValue) * 237 : 257;
-  const tooltipX = Math.min(Math.max(cursorX - 102, 54), 522);
+  const tooltipX = 512;
+  const tooltipHeight = mode === "total" ? 102 : 160;
+  const tooltipY = 247 - tooltipHeight;
 
   const updateFromPointer = (event: PointerEvent<SVGRectElement>) => {
     if (!data.length) return;
@@ -768,8 +785,8 @@ function LoadChart({
           <g className="chart-cursor" pointerEvents="none">
             <line x1={cursorX} x2={cursorX} y1="20" y2="257" />
             <circle cx={cursorX} cy={cursorY} r="6" />
-            <g transform={`translate(${tooltipX} 28)`}>
-              <rect width="220" height={mode === "total" ? 102 : 160} rx="14" />
+            <g transform={`translate(${tooltipX} ${tooltipY})`}>
+              <rect width="220" height={tooltipHeight} rx="14" />
               <text x="16" y="25" className="tooltip-time">{formatTime(selected.observed_at)}</text>
               <circle cx="19" cy="52" r="5" className="dot-total" />
               <text x="33" y="57" className="tooltip-label">總用電</text>

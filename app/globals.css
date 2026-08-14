@@ -531,13 +531,13 @@ html[data-theme="dark"] .hero-section {
   flex: 0 0 auto;
 }
 
-.gauge-info {
+.metric-info {
   position: relative;
   margin-left: auto;
   font-weight: 500;
 }
 
-.gauge-info summary {
+.metric-info summary {
   display: grid;
   width: 28px;
   height: 28px;
@@ -550,24 +550,24 @@ html[data-theme="dark"] .hero-section {
   transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
-.gauge-info summary::-webkit-details-marker {
+.metric-info summary::-webkit-details-marker {
   display: none;
 }
 
-.gauge-info summary::marker {
+.metric-info summary::marker {
   content: "";
 }
 
-.gauge-info summary:hover,
-.gauge-info summary:focus-visible,
-.gauge-info[open] summary {
+.metric-info summary:hover,
+.metric-info summary:focus-visible,
+.metric-info[open] summary {
   color: var(--blue);
   border-color: color-mix(in oklab, var(--blue) 24%, var(--line));
   background: var(--blue-soft);
   outline: none;
 }
 
-.gauge-info-popover {
+.metric-info-popover {
   position: absolute;
   z-index: 20;
   top: calc(100% + 8px);
@@ -584,12 +584,12 @@ html[data-theme="dark"] .hero-section {
   line-height: 1.65;
 }
 
-.gauge-info:hover .gauge-info-popover,
-.gauge-info[open] .gauge-info-popover {
+.metric-info:hover .metric-info-popover,
+.metric-info[open] .metric-info-popover {
   display: block;
 }
 
-.gauge-info-popover::before {
+.metric-info-popover::before {
   position: absolute;
   top: -5px;
   right: 10px;
@@ -602,14 +602,14 @@ html[data-theme="dark"] .hero-section {
   transform: rotate(45deg);
 }
 
-.gauge-info-popover strong {
+.metric-info-popover strong {
   display: block;
   margin-bottom: 4px;
   color: var(--blue);
   font-size: 12px;
 }
 
-.gauge-info-popover p {
+.metric-info-popover p {
   margin: 0;
 }
 
