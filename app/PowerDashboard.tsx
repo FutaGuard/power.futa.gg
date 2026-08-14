@@ -709,7 +709,7 @@ function LoadChart({
   }, [data]);
   const cursorX = selected ? 54 + (timeMinutes(selected.observed_at) / 1440) * 688 : 54;
   const cursorY = selected ? 20 + (1 - selected.total_load_mw / maxValue) * 237 : 257;
-  const tooltipX = 512;
+  const tooltipX = Math.min(Math.max(cursorX - 102, 54), 522);
   const tooltipHeight = mode === "total" ? 102 : 160;
   const tooltipY = 247 - tooltipHeight;
 

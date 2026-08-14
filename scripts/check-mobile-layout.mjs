@@ -177,8 +177,11 @@ try {
         return {
           element: name,
           left: Math.round(rect.left * 10) / 10,
+          top: Math.round(rect.top * 10) / 10,
           right: Math.round(rect.right * 10) / 10,
+          bottom: Math.round(rect.bottom * 10) / 10,
           width: Math.round(rect.width * 10) / 10,
+          height: Math.round(rect.height * 10) / 10,
           scrollParent: scrollParent
             ? scrollParent.tagName.toLowerCase()
               + (scrollParent.className && typeof scrollParent.className === "string"
@@ -206,6 +209,18 @@ try {
           return rect.left < -1 || rect.right > viewportWidth + 1;
         })
         .map(describe);
+      const peakIcon = document.querySelector(".peak-card .peak-icon");
+      const peakInfo = document.querySelector(".peak-card .metric-info summary");
+      const peakIconRect = peakIcon?.getBoundingClientRect();
+      const peakInfoRect = peakInfo?.getBoundingClientRect();
+      const peakIconInfoOverlap = Boolean(
+        peakIconRect &&
+        peakInfoRect &&
+        peakIconRect.left < peakInfoRect.right &&
+        peakIconRect.right > peakInfoRect.left &&
+        peakIconRect.top < peakInfoRect.bottom &&
+        peakIconRect.bottom > peakInfoRect.top
+      );
       return {
         url: location.href,
         title: document.title,
@@ -223,6 +238,11 @@ try {
           document.documentElement.scrollWidth,
           document.body.scrollWidth,
         ) - viewportWidth,
+        peakIconLayout: {
+          icon: peakIcon ? describe(peakIcon) : null,
+          info: peakInfo ? describe(peakInfo) : null,
+          overlaps: peakIconInfoOverlap,
+        },
         escapedPanels,
         outsideViewport,
         layoutStyles: [
@@ -266,6 +286,7 @@ try {
     !result.appFound ||
     result.url.startsWith("chrome-error:") ||
     result.horizontalOverflow > 1 ||
+    result.peakIconLayout.overlaps ||
     result.escapedPanels.length > 0
   ) {
     process.exitCode = 1;
