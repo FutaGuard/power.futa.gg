@@ -527,9 +527,90 @@ html[data-theme="dark"] .hero-section {
   font-weight: 850;
 }
 
-.card-label svg:last-child {
+.card-label > svg:first-child {
+  flex: 0 0 auto;
+}
+
+.gauge-info {
+  position: relative;
   margin-left: auto;
+  font-weight: 500;
+}
+
+.gauge-info summary {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  list-style: none;
+  place-items: center;
   color: var(--faint);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.gauge-info summary::-webkit-details-marker {
+  display: none;
+}
+
+.gauge-info summary::marker {
+  content: "";
+}
+
+.gauge-info summary:hover,
+.gauge-info summary:focus-visible,
+.gauge-info[open] summary {
+  color: var(--blue);
+  border-color: color-mix(in oklab, var(--blue) 24%, var(--line));
+  background: var(--blue-soft);
+  outline: none;
+}
+
+.gauge-info-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  display: none;
+  width: min(310px, calc(100vw - 48px));
+  padding: 14px 15px;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: 13px;
+  background: var(--surface-solid);
+  box-shadow: 0 14px 34px rgba(31, 56, 47, 0.18);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.gauge-info:hover .gauge-info-popover,
+.gauge-info[open] .gauge-info-popover {
+  display: block;
+}
+
+.gauge-info-popover::before {
+  position: absolute;
+  top: -5px;
+  right: 10px;
+  width: 9px;
+  height: 9px;
+  content: "";
+  border-top: 1px solid var(--line-strong);
+  border-left: 1px solid var(--line-strong);
+  background: var(--surface-solid);
+  transform: rotate(45deg);
+}
+
+.gauge-info-popover strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--blue);
+  font-size: 12px;
+}
+
+.gauge-info-popover p {
+  margin: 0;
 }
 
 .circular-gauge {
@@ -541,7 +622,7 @@ html[data-theme="dark"] .hero-section {
   margin: 15px auto 10px;
   place-items: center;
   border-radius: 50%;
-  background: conic-gradient(from -90deg, #53aa3d, #a5cd00 var(--gauge-stop), var(--line) var(--gauge-stop) 360deg);
+  background: conic-gradient(from 0deg, #53aa3d, #a5cd00 var(--gauge-stop), var(--line) var(--gauge-stop) 360deg);
 }
 
 .circular-gauge::before {

@@ -641,7 +641,19 @@ function Hero({ power, connection }: { power: PowerSnapshot; connection: Connect
         </div>
       </div>
       <article className="hero-stat gauge-card">
-        <div className="card-label"><CircleGauge size={17} /> 系統供電利用率 <Info size={14} /></div>
+        <div className="card-label">
+          <CircleGauge size={17} />
+          <span>系統供電利用率</span>
+          <details className="gauge-info">
+            <summary aria-label="查看系統供電利用率計算說明">
+              <Info size={14} aria-hidden="true" />
+            </summary>
+            <div className="gauge-info-popover" role="note">
+              <strong>計算方式</strong>
+              <p>使用率計算方式為：( 目前用電量 ÷ 供電能力 )×100%；其中供電能力為估算值，係參考機組狀況及再生能源發電量適時更新。</p>
+            </div>
+          </details>
+        </div>
         <CircularGauge value={utilization} />
         <div className="gauge-values">
           <span>目前用電 <strong>{formatNumber(current)} MW</strong></span>

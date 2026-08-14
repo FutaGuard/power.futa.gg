@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render() {
@@ -34,4 +35,15 @@ test("server-renders the Taiwan power dashboard shell", async () => {
   assert.match(html, /unit-status is-outage/);
   assert.match(html, /unit-status is-stopped/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
+});
+
+test("supply utilization gauge starts at twelve and explains its calculation", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const gaugeRule = css.match(/\.circular-gauge\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+  assert.match(gaugeRule, /conic-gradient\(from 0deg,/);
+
+  const response = await render();
+  const html = await response.text();
+  assert.match(html, /aria-label="查看系統供電利用率計算說明"/);
+  assert.match(html, /使用率計算方式為：\( 目前用電量 ÷ 供電能力 \)×100%；其中供電能力為估算值，係參考機組狀況及再生能源發電量適時更新。/);
 });
