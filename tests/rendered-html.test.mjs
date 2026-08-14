@@ -64,3 +64,13 @@ test("displays power values in ten-thousand kilowatts", async () => {
   assert.match(html, /單位：萬瓩/);
   assert.doesNotMatch(html, /\bMW\b/);
 });
+
+test("uses the same focus-following tooltip placement for live and history charts", async () => {
+  const source = await readFile(new URL("../app/PowerDashboard.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.equal(source.match(/placeChartTooltip\(cursorX, cursorY,/g)?.length, 2);
+  assert.match(source, /className="history-chart" viewBox=\{`0 0 \$\{width\} \$\{canvasHeight\}`\}/);
+  assert.match(source, /className="history-tooltip-dot"/);
+  assert.match(css, /\.history-chart\s*\{[\s\S]*?aspect-ratio:\s*980\s*\/\s*408;/);
+});

@@ -1952,7 +1952,9 @@ html[data-theme="dark"] .county-shape {
 .history-chart {
   display: block;
   width: 100%;
-  height: 330px;
+  height: auto;
+  aspect-ratio: 980 / 408;
+  overflow: visible;
 }
 
 .history-grid-line {
@@ -1963,21 +1965,21 @@ html[data-theme="dark"] .county-shape {
 .history-axis-label {
   fill: var(--muted);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .history-trend-line {
   fill: none;
   stroke: var(--history-accent);
-  stroke-width: 3.2;
+  stroke-width: 3.4;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
 .history-chart-cursor > line {
-  stroke: color-mix(in oklab, var(--history-accent) 62%, var(--line));
+  stroke: color-mix(in oklab, var(--history-accent) 58%, var(--line));
   stroke-dasharray: 3 3;
 }
 
@@ -1990,12 +1992,12 @@ html[data-theme="dark"] .county-shape {
 .history-chart-cursor rect {
   fill: var(--surface-solid);
   stroke: var(--line-strong);
-  filter: drop-shadow(0 8px 15px rgba(33, 62, 50, 0.13));
+  filter: drop-shadow(0 8px 14px rgba(33, 62, 50, 0.13));
 }
 
 .history-chart-cursor text {
   fill: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -2003,19 +2005,24 @@ html[data-theme="dark"] .county-shape {
 .history-chart-cursor .history-tooltip-value {
   fill: var(--ink);
   font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .history-chart-cursor .history-tooltip-label {
   fill: var(--ink);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 850;
 }
 
 .history-chart-cursor .history-tooltip-hint {
   fill: var(--faint);
-  font-size: 9px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.history-chart-cursor .history-tooltip-dot {
+  fill: var(--history-accent);
 }
 
 .history-chart-hit-area {
@@ -2024,7 +2031,7 @@ html[data-theme="dark"] .county-shape {
 }
 
 .history-chart-hit-area:focus {
-  stroke: color-mix(in oklab, var(--blue) 35%, transparent);
+  stroke: color-mix(in oklab, var(--blue) 38%, transparent);
   stroke-width: 2;
 }
 
@@ -2796,7 +2803,7 @@ html[data-theme="dark"] .county-shape {
   .history-region-card { padding: 14px; }
   .history-metric-tabs { max-width: 100%; padding-bottom: 3px; }
   .history-chart-shell { overflow-x: auto; scrollbar-width: thin; }
-  .history-chart { width: 760px; max-width: none; height: 300px; }
+  .history-chart { width: 760px; max-width: none; height: auto; }
   .history-mix-list { grid-template-columns: 1fr; }
   .history-region-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .generator-heading p { font-size: 13px; }

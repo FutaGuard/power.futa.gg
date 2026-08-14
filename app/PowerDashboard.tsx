@@ -411,6 +411,20 @@ function formatWanKw(value: number | null | undefined, maximumFractionDigits = 2
   }).format(value / 10);
 }
 
+const CHART_TOOLTIP_WIDTH = 220;
+const CHART_TOOLTIP_GAP = 14;
+
+function placeChartTooltip(cursorX: number, cursorY: number, rightEdge: number) {
+  const onRight = cursorX + CHART_TOOLTIP_GAP + CHART_TOOLTIP_WIDTH <= rightEdge;
+  return {
+    x: onRight
+      ? cursorX + CHART_TOOLTIP_GAP
+      : cursorX - CHART_TOOLTIP_GAP - CHART_TOOLTIP_WIDTH,
+    y: cursorY + CHART_TOOLTIP_GAP,
+    placement: onRight ? "right-bottom" : "left-bottom",
+  } as const;
+}
+
 function formatTime(iso: string) {
   return new Intl.DateTimeFormat("zh-TW", {
     timeZone: TAIPEI_TIME_ZONE,
@@ -739,14 +753,8 @@ function LoadChart({
   }, [activeFuel, data, fuelData, mode]);
   const cursorX = selectedTime ? 54 + (timeMinutes(selectedTime) / 1440) * 688 : 54;
   const cursorY = selectedTime ? 20 + (1 - Math.min(selectedValue, maxValue) / maxValue) * 237 : 257;
-  const tooltipWidth = 220;
-  const tooltipGap = 14;
-  const tooltipOnRight = cursorX + tooltipGap + tooltipWidth <= 742;
-  const tooltipX = tooltipOnRight
-    ? cursorX + tooltipGap
-    : cursorX - tooltipGap - tooltipWidth;
+  const tooltip = placeChartTooltip(cursorX, cursorY, 742);
   const tooltipHeight = mode === "regions" ? 160 : mode === "energy" ? 126 : 102;
-  const tooltipY = cursorY + tooltipGap;
   const energyShare = selectedMix ? (selectedValue / Math.max(selectedMix.total_mw, 1)) * 100 : 0;
   const chartAccent = mode === "energy" ? activeFuel.color : "var(--blue)";
   const activeIndex = activeData.findIndex((point) => point.observed_at === selectedTime);
@@ -847,10 +855,10 @@ function LoadChart({
             <line x1={cursorX} x2={cursorX} y1="20" y2="257" />
             <circle cx={cursorX} cy={cursorY} r="6" />
             <g
-              transform={`translate(${tooltipX} ${tooltipY})`}
-              data-tooltip-placement={tooltipOnRight ? "right-bottom" : "left-bottom"}
+              transform={`translate(${tooltip.x} ${tooltip.y})`}
+              data-tooltip-placement={tooltip.placement}
             >
-              <rect width="220" height={tooltipHeight} rx="14" />
+              <rect width={CHART_TOOLTIP_WIDTH} height={tooltipHeight} rx="14" />
               <text x="16" y="25" className="tooltip-time">{formatTime(selectedTime)}</text>
               <circle cx="19" cy="52" r="5" style={{ fill: chartAccent }} />
               <text x="33" y="57" className="tooltip-label">{mode === "energy" ? activeFuel.label : "總用電"}</text>
@@ -1188,13 +1196,13 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
   }
 
   const width = 980;
-  const height = 334;
+  const canvasHeight = 408;
   const left = 66;
   const right = 24;
   const top = 24;
-  const bottom = 44;
   const plotWidth = width - left - right;
-  const plotHeight = height - top - bottom;
+  const plotHeight = 266;
+  const axisLabelY = 321;
   const values = sampledPoints.map((point) => point.value);
   const rawMin = Math.min(...values);
   const rawMax = Math.max(...values);
@@ -1212,7 +1220,7 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
   const selected = sampledPoints[safeIndex];
   const cursorX = pointX(safeIndex);
   const cursorY = pointY(selected.value);
-  const tooltipX = Math.min(Math.max(cursorX > width * 0.72 ? cursorX - 238 : cursorX + 14, left), width - 238);
+  const tooltip = placeChartTooltip(cursorX, cursorY, width - right);
   const showTimeOnAxis = new Date(sampledPoints.at(-1)!.observedAt).getTime() - new Date(sampledPoints[0].observedAt).getTime() < 36 * 3600000;
 
   const selectFromPointer = (event: PointerEvent<SVGRectElement>) => {
@@ -1232,7 +1240,7 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
 
   return (
     <div className="history-chart-shell" style={{ "--history-accent": config.color } as CSSProperties}>
-      <svg className="history-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${config.label}歷史趨勢圖`}>
+      <svg className="history-chart" viewBox={`0 0 ${width} ${canvasHeight}`} role="img" aria-label={`${config.label}歷史趨勢圖`}>
         <defs>
           <linearGradient id={`history-area-${metric}`} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="var(--history-accent)" stopOpacity="0.24" />
@@ -1255,7 +1263,7 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
           const index = Math.min(sampledPoints.length - 1, Math.round(ratio * (sampledPoints.length - 1)));
           const point = sampledPoints[index];
           return (
-            <text key={ratio} x={pointX(index)} y={height - 13} textAnchor={ratio === 0 ? "start" : ratio === 1 ? "end" : "middle"} className="history-axis-label">
+            <text key={ratio} x={pointX(index)} y={axisLabelY} textAnchor={ratio === 0 ? "start" : ratio === 1 ? "end" : "middle"} className="history-axis-label">
               {formatHistoryDate(point.observedAt, showTimeOnAxis)}
             </text>
           );
@@ -1265,14 +1273,18 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
         <g className="history-chart-cursor" pointerEvents="none">
           <line x1={cursorX} x2={cursorX} y1={top} y2={top + plotHeight} />
           <circle cx={cursorX} cy={cursorY} r="6" />
-          <g transform={`translate(${tooltipX} 34)`}>
-            <rect width="224" height="88" rx="14" />
-            <text x="15" y="25" className="history-tooltip-time">{formatHistoryDate(selected.observedAt, true)}</text>
-            <text x="15" y="58" className="history-tooltip-label">{config.label}</text>
-            <text x="209" y="58" textAnchor="end" className="history-tooltip-value">
+          <g
+            transform={`translate(${tooltip.x} ${tooltip.y})`}
+            data-tooltip-placement={tooltip.placement}
+          >
+            <rect width={CHART_TOOLTIP_WIDTH} height="102" rx="14" />
+            <text x="16" y="25" className="history-tooltip-time">{formatHistoryDate(selected.observedAt, true)}</text>
+            <circle cx="19" cy="52" r="5" className="history-tooltip-dot" />
+            <text x="33" y="57" className="history-tooltip-label">{config.label}</text>
+            <text x="204" y="57" textAnchor="end" className="history-tooltip-value">
               {formatMetricValue(selected.value)} {config.unit}
             </text>
-            <text x="15" y="76" className="history-tooltip-hint">拖曳或使用方向鍵探索</text>
+            <text x="16" y="84" className="history-tooltip-hint">拖曳或使用方向鍵探索</text>
           </g>
         </g>
         <rect
