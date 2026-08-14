@@ -22,6 +22,7 @@ test("server-renders the Taiwan power dashboard shell", async () => {
   const html = await response.text();
   assert.match(html, /<html[^>]*lang="zh-Hant"/i);
   assert.match(html, /<title>台灣電力即時資訊 · power\.futa\.gg<\/title>/i);
+  assert.match(html, /og-wankw\.png/);
   assert.match(html, /現在，台灣用了多少電？/);
   assert.match(html, /區域電力供需/);
   assert.match(html, /歷史電力總覽/);
@@ -52,4 +53,14 @@ test("hero utilization metrics explain their calculations", async () => {
   assert.match(html, /使用率計算方式為：\( 目前用電量 ÷ 供電能力 \)×100%；其中供電能力為估算值，係參考機組狀況及再生能源發電量適時更新。/);
   assert.match(html, /aria-label="查看今日預估尖峰計算說明"/);
   assert.match(html, /尖峰使用率 = \( 預估最高用電 ÷ 最大供電能力 \)×100%/);
+});
+
+test("displays power values in ten-thousand kilowatts", async () => {
+  const response = await render();
+  const html = await response.text();
+
+  assert.match(html, /3,951\.5/);
+  assert.match(html, /38\.62/);
+  assert.match(html, /單位：萬瓩/);
+  assert.doesNotMatch(html, /\bMW\b/);
 });

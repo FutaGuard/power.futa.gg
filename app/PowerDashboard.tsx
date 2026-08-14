@@ -219,10 +219,10 @@ const regionMeta: Record<RegionKey, { label: string; color: string }> = {
 };
 
 const historyMetricMeta: Record<HistoryMetric, { label: string; unit: string; color: string }> = {
-  load: { label: "總用電", unit: "MW", color: "var(--blue)" },
+  load: { label: "總用電", unit: "萬瓩", color: "var(--blue)" },
   reserve: { label: "備轉容量率", unit: "%", color: "var(--green)" },
-  solar: { label: "太陽能", unit: "MW", color: "var(--yellow)" },
-  renewable: { label: "再生能源", unit: "MW", color: "#35b779" },
+  solar: { label: "太陽能", unit: "萬瓩", color: "var(--yellow)" },
+  renewable: { label: "再生能源", unit: "萬瓩", color: "#35b779" },
 };
 
 const countyRegions: Record<string, RegionKey> = {
@@ -401,6 +401,14 @@ function formatNumber(value: number | null | undefined, digits = 0) {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
   }).format(value);
+}
+
+function formatWanKw(value: number | null | undefined, maximumFractionDigits = 2) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return new Intl.NumberFormat("zh-TW", {
+    maximumFractionDigits,
+    minimumFractionDigits: 0,
+  }).format(value / 10);
 }
 
 function formatTime(iso: string) {
@@ -645,7 +653,7 @@ function Hero({ power, connection }: { power: PowerSnapshot; connection: Connect
         <div className="eyebrow"><CloudSun size={17} /> 島嶼日光 · 即時電力</div>
         <h1 id="hero-title">現在，台灣用了多少電？</h1>
         <div className="hero-number">
-          <strong>{formatNumber(current)}</strong><span>MW</span>
+          <strong>{formatWanKw(current)}</strong><span>萬瓩</span>
         </div>
         <div className="hero-meta">
           <time dateTime={power.published_at}>{formatDateTime(power.published_at)}</time>
@@ -666,8 +674,8 @@ function Hero({ power, connection }: { power: PowerSnapshot; connection: Connect
         </div>
         <CircularGauge value={utilization} />
         <div className="gauge-values">
-          <span>目前用電 <strong>{formatNumber(current)} MW</strong></span>
-          <span>供電能力 <strong>{formatNumber(power.forecast_max_supply_mw)} MW</strong></span>
+          <span>目前用電 <strong>{formatWanKw(current)} 萬瓩</strong></span>
+          <span>供電能力 <strong>{formatWanKw(power.forecast_max_supply_mw)} 萬瓩</strong></span>
         </div>
       </article>
       <article className="hero-stat peak-card">
@@ -679,12 +687,12 @@ function Hero({ power, connection }: { power: PowerSnapshot; connection: Connect
             text="尖峰使用率 = ( 預估最高用電 ÷ 最大供電能力 )×100%"
           />
         </div>
-        <strong className="peak-number">{formatNumber(power.forecast_peak_demand_mw)} <small>MW</small></strong>
+        <strong className="peak-number">{formatWanKw(power.forecast_peak_demand_mw)} <small>萬瓩</small></strong>
         <span className="peak-time">{power.forecast_peak_hour_range ?? "—"}</span>
         <div className="peak-divider" />
         <dl>
           <div><dt>備轉容量率</dt><dd>{formatNumber(reserveRate, 1)}%</dd></div>
-          <div><dt>備轉容量</dt><dd>{formatNumber(power.forecast_peak_reserve_mw)} MW</dd></div>
+          <div><dt>備轉容量</dt><dd>{formatWanKw(power.forecast_peak_reserve_mw)} 萬瓩</dd></div>
         </dl>
         <span className="peak-status"><Sun size={15} /> 尖峰時段 {reserveLabel}</span>
       </article>
@@ -738,9 +746,7 @@ function LoadChart({
   const chartAccent = mode === "energy" ? activeFuel.color : "var(--blue)";
   const activeIndex = activeData.findIndex((point) => point.observed_at === selectedTime);
   const chartLabel = mode === "energy" ? `${activeFuel.label}${dayLabel}發電曲線圖` : `${dayLabel}用電曲線圖`;
-  const axisValue = (value: number) => value >= 1000
-    ? `${formatNumber(value / 1000, value >= 10000 ? 0 : 1)}k`
-    : formatNumber(value);
+  const axisValue = (value: number) => formatWanKw(value, 1);
 
   const updateFromPointer = (event: PointerEvent<SVGRectElement>) => {
     if (!activeData.length) return;
@@ -840,14 +846,14 @@ function LoadChart({
               <text x="16" y="25" className="tooltip-time">{formatTime(selectedTime)}</text>
               <circle cx="19" cy="52" r="5" style={{ fill: chartAccent }} />
               <text x="33" y="57" className="tooltip-label">{mode === "energy" ? activeFuel.label : "總用電"}</text>
-              <text x="204" y="57" textAnchor="end" className="tooltip-value">{formatNumber(selectedValue)} MW</text>
+              <text x="204" y="57" textAnchor="end" className="tooltip-value">{formatWanKw(selectedValue)} 萬瓩</text>
               {mode === "regions" && selectedArea && (
                 <>
-                  <text x="16" y="88" className="tooltip-sub">北部 {formatNumber(selectedArea.north_load_mw)}</text>
-                  <text x="116" y="88" className="tooltip-sub">中部 {formatNumber(selectedArea.central_load_mw)}</text>
-                  <text x="16" y="116" className="tooltip-sub">南部 {formatNumber(selectedArea.south_load_mw)}</text>
-                  <text x="116" y="116" className="tooltip-sub">東部 {formatNumber(selectedArea.east_load_mw)}</text>
-                  <text x="16" y="144" className="tooltip-note">單位：MW</text>
+                  <text x="16" y="88" className="tooltip-sub">北部 {formatWanKw(selectedArea.north_load_mw)}</text>
+                  <text x="116" y="88" className="tooltip-sub">中部 {formatWanKw(selectedArea.central_load_mw)}</text>
+                  <text x="16" y="116" className="tooltip-sub">南部 {formatWanKw(selectedArea.south_load_mw)}</text>
+                  <text x="116" y="116" className="tooltip-sub">東部 {formatWanKw(selectedArea.east_load_mw)}</text>
+                  <text x="16" y="144" className="tooltip-note">單位：萬瓩</text>
                 </>
               )}
               {mode === "energy" && (
@@ -876,7 +882,7 @@ function LoadChart({
           aria-valuemin={0}
           aria-valuemax={Math.max(0, activeData.length - 1)}
           aria-valuenow={Math.max(0, activeIndex)}
-          aria-valuetext={selectedTime ? `${formatTime(selectedTime)}，${mode === "energy" ? activeFuel.label : "總用電"} ${formatNumber(selectedValue)} MW` : "無資料"}
+          aria-valuetext={selectedTime ? `${formatTime(selectedTime)}，${mode === "energy" ? activeFuel.label : "總用電"} ${formatWanKw(selectedValue)} 萬瓩` : "無資料"}
         />
       </svg>
     </div>
@@ -914,7 +920,7 @@ function FuelMixCard({
           <h2>能源從哪裡來？</h2>
           <p>點選能源，即時查看比例與今日發電曲線。</p>
         </div>
-        <span className="panel-total">總計 {formatNumber(mix.total_mw)} MW</span>
+        <span className="panel-total">總計 {formatWanKw(mix.total_mw)} 萬瓩</span>
       </div>
       <div className="mix-content">
         <button
@@ -932,8 +938,8 @@ function FuelMixCard({
                 </>
               ) : (
                 <>
-                  <strong>{formatNumber(mix.total_mw)}</strong>
-                  <span>MW</span>
+                  <strong>{formatWanKw(mix.total_mw)}</strong>
+                  <span>萬瓩</span>
                 </>
               )}
             </span>
@@ -956,7 +962,7 @@ function FuelMixCard({
               >
                 <span className="fuel-icon" style={{ color: fuel.color }}><Icon size={16} /></span>
                 <span>{fuel.label}</span>
-                <strong>{formatNumber(fuel.value)} MW</strong>
+                <strong>{formatWanKw(fuel.value)} 萬瓩</strong>
                 <small>{((fuel.value / total) * 100).toFixed(1)}%</small>
               </button>
             );
@@ -1077,9 +1083,9 @@ function TaiwanMap({
       <div className="map-tooltip" style={{ "--region-color": selected.color } as CSSProperties}>
         <span>{selected.label}</span>
         <dl>
-          <div><dt>發電</dt><dd>{formatNumber(selected.generation)} MW</dd></div>
-          <div><dt>用電</dt><dd>{formatNumber(selected.load)} MW</dd></div>
-          <div><dt>差額</dt><dd className={selected.difference >= 0 ? "positive" : "negative"}>{selected.difference >= 0 ? "+" : ""}{formatNumber(selected.difference)} MW</dd></div>
+          <div><dt>發電</dt><dd>{formatWanKw(selected.generation)} 萬瓩</dd></div>
+          <div><dt>用電</dt><dd>{formatWanKw(selected.load)} 萬瓩</dd></div>
+          <div><dt>差額</dt><dd className={selected.difference >= 0 ? "positive" : "negative"}>{selected.difference >= 0 ? "+" : ""}{formatWanKw(selected.difference)} 萬瓩</dd></div>
         </dl>
       </div>
     </div>
@@ -1131,10 +1137,10 @@ function RegionCard({ area }: { area: AreaSnapshot }) {
                 aria-pressed={selected}
               >
                 <span className="region-name"><span className="region-symbol"><Zap size={15} /></span>{region.label}</span>
-                <span><small>發電</small><strong>{formatNumber(region.generation)}</strong><em>MW</em></span>
-                <span><small>用電</small><strong>{formatNumber(region.load)}</strong><em>MW</em></span>
+                <span><small>發電</small><strong>{formatWanKw(region.generation)}</strong><em>萬瓩</em></span>
+                <span><small>用電</small><strong>{formatWanKw(region.load)}</strong><em>萬瓩</em></span>
                 <span className={region.difference >= 0 ? "positive" : "negative"}>
-                  <small>差額</small><strong>{region.difference >= 0 ? "+" : ""}{formatNumber(region.difference)}</strong><em>MW</em>
+                  <small>差額</small><strong>{region.difference >= 0 ? "+" : ""}{formatWanKw(region.difference)}</strong><em>萬瓩</em>
                 </span>
                 <span className="flow-state">{region.difference >= 0 ? "淨輸出" : "淨輸入"}<ChevronRight size={15} /></span>
               </button>
@@ -1156,6 +1162,9 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
   const sampledPoints = useMemo(() => downsampleHistory(points), [points]);
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, sampledPoints.length - 1));
   const config = historyMetricMeta[metric];
+  const formatMetricValue = (value: number, axis = false) => metric === "reserve"
+    ? formatNumber(value, 1)
+    : formatWanKw(value, axis ? 1 : 2);
 
   useEffect(() => {
     setSelectedIndex(Math.max(0, sampledPoints.length - 1));
@@ -1229,7 +1238,7 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
             <g key={ratio}>
               <line x1={left} x2={width - right} y1={y} y2={y} className="history-grid-line" />
               <text x={left - 11} y={y + 4} textAnchor="end" className="history-axis-label">
-                {metric === "reserve" ? tickValue.toFixed(1) : tickValue >= 1000 ? `${(tickValue / 1000).toFixed(tickValue >= 10000 ? 0 : 1)}k` : formatNumber(tickValue)}
+                {formatMetricValue(tickValue, true)}
               </text>
             </g>
           );
@@ -1253,7 +1262,7 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
             <text x="15" y="25" className="history-tooltip-time">{formatHistoryDate(selected.observedAt, true)}</text>
             <text x="15" y="58" className="history-tooltip-label">{config.label}</text>
             <text x="209" y="58" textAnchor="end" className="history-tooltip-value">
-              {formatNumber(selected.value, metric === "reserve" ? 1 : 0)} {config.unit}
+              {formatMetricValue(selected.value)} {config.unit}
             </text>
             <text x="15" y="76" className="history-tooltip-hint">拖曳或使用方向鍵探索</text>
           </g>
@@ -1274,7 +1283,7 @@ function HistoryTrendChart({ points, metric }: { points: HistoryChartPoint[]; me
           aria-valuemin={0}
           aria-valuemax={sampledPoints.length - 1}
           aria-valuenow={safeIndex}
-          aria-valuetext={`${formatHistoryDate(selected.observedAt, true)}，${config.label} ${formatNumber(selected.value, metric === "reserve" ? 1 : 0)} ${config.unit}`}
+          aria-valuetext={`${formatHistoryDate(selected.observedAt, true)}，${config.label} ${formatMetricValue(selected.value)} ${config.unit}`}
         />
       </svg>
     </div>
@@ -1496,11 +1505,11 @@ function HistorySection() {
           <div className="history-summary" aria-label="歷史期間摘要">
             <button type="button" className={metric === "load" ? "is-active" : ""} onClick={() => setMetric("load")}>
               <span className="history-stat-icon is-blue"><Gauge size={19} /></span>
-              <span><small>平均用電</small><strong>{formatNumber(averageLoad)} <em>MW</em></strong><i>期間所有取樣平均</i></span>
+              <span><small>平均用電</small><strong>{formatWanKw(averageLoad)} <em>萬瓩</em></strong><i>期間所有取樣平均</i></span>
             </button>
             <button type="button" className={metric === "load" ? "is-active" : ""} onClick={() => setMetric("load")}>
               <span className="history-stat-icon is-orange"><ArrowUpRight size={19} /></span>
-              <span><small>最高用電</small><strong>{formatNumber(peakLoad?.total_load_mw)} <em>MW</em></strong><i>{peakLoad ? formatHistoryDate(peakLoad.observed_at, true) : "無資料"}</i></span>
+              <span><small>最高用電</small><strong>{formatWanKw(peakLoad?.total_load_mw)} <em>萬瓩</em></strong><i>{peakLoad ? formatHistoryDate(peakLoad.observed_at, true) : "無資料"}</i></span>
             </button>
             <button type="button" className={metric === "reserve" ? "is-active" : ""} onClick={() => setMetric("reserve")}>
               <span className="history-stat-icon is-green"><BatteryCharging size={19} /></span>
@@ -1533,7 +1542,7 @@ function HistorySection() {
             <article className="history-mix-card">
               <div className="history-subheading">
                 <div><span>期間平均</span><strong>發電結構</strong></div>
-                <small>平均 MW</small>
+                <small>單位：萬瓩</small>
               </div>
               {averageFuelMix.length ? (
                 <>
@@ -1546,7 +1555,7 @@ function HistorySection() {
                       return (
                         <div key={fuel.key}>
                           <span style={{ color: fuel.color }}><Icon size={16} /> {fuel.label}</span>
-                          <strong>{formatNumber(fuel.value)} MW</strong>
+                          <strong>{formatWanKw(fuel.value)} 萬瓩</strong>
                           <small>{averageFuelTotal ? ((fuel.value / averageFuelTotal) * 100).toFixed(1) : "0.0"}%</small>
                         </div>
                       );
@@ -1570,7 +1579,7 @@ function HistorySection() {
                     <div key={region.key} style={{ "--region-color": region.color } as CSSProperties}>
                       <span><i />{region.label}</span>
                       <span className="history-region-track"><i style={{ width: `${share}%` }} /></span>
-                      <strong>{formatNumber(region.value)} MW</strong>
+                      <strong>{formatWanKw(region.value)} 萬瓩</strong>
                       <small>{share.toFixed(1)}%</small>
                     </div>
                   );
@@ -1622,7 +1631,7 @@ function GeneratorSection({ generators }: { generators: GeneratorRecord[] }) {
           <span><strong>{units.length}</strong> 個機組</span>
           <span className="summary-running"><strong>{runningCount}</strong> 發電中</span>
           <span className="summary-limited"><strong>{limitedCount}</strong> 有註記</span>
-          <span><strong>{formatNumber(totalGeneration)}</strong> MW</span>
+          <span><strong>{formatWanKw(totalGeneration)}</strong> 萬瓩</span>
         </div>
       </div>
       <div className="generator-toolbar">
@@ -1666,16 +1675,16 @@ function GeneratorSection({ generators }: { generators: GeneratorRecord[] }) {
                     <button className="generator-row-button" type="button" onClick={() => setExpanded(isExpanded ? null : unit.id)} aria-expanded={isExpanded}>
                       <span className="unit-name"><span className={`source-dot source-${unit.category_code}`} />{unit.unit_name}</span>
                       <span className="unit-category" data-label="能源別">{unit.category.replace(/\(.+\)/, "")}</span>
-                      <span className="unit-number" data-label="淨發電量"><strong>{formatNumber(generation, 1)}</strong> MW</span>
-                      <span className="unit-number" data-label="裝置容量">{formatNumber(unit.installed_capacity_mw, 1)} MW</span>
+                      <span className="unit-number" data-label="淨發電量"><strong>{formatWanKw(generation)}</strong> 萬瓩</span>
+                      <span className="unit-number" data-label="裝置容量">{formatWanKw(unit.installed_capacity_mw)} 萬瓩</span>
                       <span className="utilization-cell" data-label="利用率"><span><i style={{ width: `${Math.min(100, Math.max(0, utilization))}%` }} /></span><strong>{formatNumber(utilization, 1)}%</strong></span>
                       <span data-label="狀態"><span className={`unit-status ${displayStatus.tone}`} aria-label={`${displayStatus.description}：${displayStatus.label}`}>{displayStatus.label}</span></span>
                       <ChevronDown size={17} className="row-chevron" />
                     </button>
                     {isExpanded && (
                       <div className="unit-detail">
-                        <span><Gauge size={16} /> 即時出力 {formatNumber(generation, 1)} MW</span>
-                        <span><BatteryCharging size={16} /> 裝置容量 {formatNumber(unit.installed_capacity_mw, 1)} MW</span>
+                        <span><Gauge size={16} /> 即時出力 {formatWanKw(generation)} 萬瓩</span>
+                        <span><BatteryCharging size={16} /> 裝置容量 {formatWanKw(unit.installed_capacity_mw)} 萬瓩</span>
                         <span><Info size={16} /> {unit.status ? `台電註記：${unit.status}` : "目前無運轉限制註記"}</span>
                       </div>
                     )}
@@ -1863,7 +1872,7 @@ export function PowerDashboard() {
                   })}
                 </div>
               ) : null}
-              <span className="chart-unit">單位：MW</span>
+              <span className="chart-unit">單位：萬瓩</span>
             </div>
             <LoadChart
               data={data.areaLoads}

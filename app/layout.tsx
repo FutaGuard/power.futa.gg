@@ -18,7 +18,7 @@ export const metadata: Metadata = {
       "看懂此刻與過去的台灣用電、發電結構，以及四大區域的供需狀態。",
     images: [
       {
-        url: "/og-energy.png",
+        url: "/og-wankw.png",
         width: 1200,
         height: 630,
         alt: "台灣電力即時資訊、能源發電曲線與區域供需地圖",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     title: "台灣電力即時資訊 · power.futa.gg",
     description:
       "看懂此刻與過去的台灣用電、發電結構，以及四大區域的供需狀態。",
-    images: ["/og-energy.png"],
+    images: ["/og-wankw.png"],
   },
   icons: {
     icon: "/favicon.svg",
