@@ -156,6 +156,35 @@ try {
     await delay(100);
   }
 
+  const energyBefore = await cdp.send("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => ({
+      mode: document.querySelector(".load-card")?.dataset.loadMode ?? null,
+      selectedFuel: document.querySelector(".load-card")?.dataset.selectedFuel ?? null,
+    }))()`,
+  });
+  const energyClick = await cdp.send("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => {
+      const button = document.querySelector('[data-fuel-key="solar"]');
+      if (!(button instanceof HTMLButtonElement)) return false;
+      button.click();
+      return true;
+    })()`,
+  });
+  await delay(200);
+  const energyAfter = await cdp.send("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => ({
+      mode: document.querySelector(".load-card")?.dataset.loadMode ?? null,
+      selectedFuel: document.querySelector(".load-card")?.dataset.selectedFuel ?? null,
+      chartLabel: document.querySelector(".load-chart")?.getAttribute("aria-label") ?? null,
+      hasSolarCurve: Boolean(document.querySelector('[data-energy-key="solar"]')),
+      solarPressed: document.querySelector('[data-fuel-key="solar"]')?.getAttribute("aria-pressed") ?? null,
+      donutSummary: document.querySelector(".donut-hole")?.textContent?.replace(/\\s+/g, " ").trim() ?? null,
+    }))()`,
+  });
+
   const evaluation = await cdp.send("Runtime.evaluate", {
     returnByValue: true,
     expression: `(() => {
@@ -273,6 +302,11 @@ try {
   });
 
   const result = evaluation.result.value;
+  result.energyInteraction = {
+    before: energyBefore.result.value,
+    clicked: energyClick.result.value,
+    after: energyAfter.result.value,
+  };
   if (screenshotPath) {
     const screenshot = await cdp.send("Page.captureScreenshot", {
       format: "png",
@@ -287,6 +321,15 @@ try {
     result.url.startsWith("chrome-error:") ||
     result.horizontalOverflow > 1 ||
     result.peakIconLayout.overlaps ||
+    result.energyInteraction.before.mode !== "total" ||
+    !result.energyInteraction.clicked ||
+    result.energyInteraction.after.mode !== "energy" ||
+    result.energyInteraction.after.selectedFuel !== "solar" ||
+    result.energyInteraction.after.chartLabel !== "太陽能今日發電曲線圖" ||
+    !result.energyInteraction.after.hasSolarCurve ||
+    result.energyInteraction.after.solarPressed !== "true" ||
+    !result.energyInteraction.after.donutSummary?.includes("太陽能") ||
+    !result.energyInteraction.after.donutSummary?.includes("%") ||
     result.escapedPanels.length > 0
   ) {
     process.exitCode = 1;

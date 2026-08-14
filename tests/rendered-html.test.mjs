@@ -27,6 +27,9 @@ test("server-renders the Taiwan power dashboard shell", async () => {
   assert.match(html, /歷史電力總覽/);
   assert.match(html, /快速選擇歷史期間/);
   assert.match(html, /把用電、備轉容量、發電結構與區域需求放在同一個時間軸查看/);
+  assert.match(html, />依能源<\/button>/);
+  assert.match(html, /點選能源，即時查看比例與今日發電曲線。/);
+  assert.match(html, /aria-label="查看太陽能發電曲線與比例"/);
   assert.match(html, /transform="translate\([^ ]+ 145\)"/);
   assert.match(html, /發電機組即時狀態/);
   assert.doesNotMatch(html, /太陽能今日曲線|太陽能即時發電|太陽能正供應全台/);

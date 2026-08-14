@@ -48,9 +48,10 @@ const TAIPEI_TIME_ZONE = "Asia/Taipei";
 
 type ConnectionState = "loading" | "live" | "offline";
 type RegionKey = "north" | "central" | "south" | "east";
+type FuelKey = "gas" | "coal" | "solar" | "wind" | "hydro" | "other";
 type GeneratorFilter = "all" | "running" | "stopped" | "limited";
 type GeneratorStatusTone = "is-running" | "is-limited" | "is-outage" | "is-alert" | "is-stopped";
-type LoadMode = "total" | "regions";
+type LoadMode = "total" | "regions" | "energy";
 type HistoryPreset = "today" | "week" | "month" | "custom";
 type HistoryMetric = "load" | "reserve" | "solar" | "renewable";
 
@@ -145,7 +146,7 @@ interface HistoryChartPoint {
 }
 
 interface FuelDefinition {
-  key: string;
+  key: FuelKey;
   label: string;
   color: string;
   icon: ComponentType<{ size?: number; strokeWidth?: number }>;
@@ -490,9 +491,9 @@ function nearestByTime<T extends { observed_at: string }>(items: T[], iso: strin
   );
 }
 
-function linePath(
-  points: AreaLoad[],
-  value: (point: AreaLoad) => number,
+function linePath<T extends { observed_at: string }>(
+  points: T[],
+  value: (point: T) => number,
   max: number,
   width = 760,
   height = 292,
@@ -510,9 +511,9 @@ function linePath(
     .join(" ");
 }
 
-function areaPath(points: AreaLoad[], max: number) {
+function areaPath<T extends { observed_at: string }>(points: T[], value: (point: T) => number, max: number) {
   if (!points.length) return "";
-  const line = linePath(points, (point) => point.total_load_mw, max);
+  const line = linePath(points, value, max);
   const lastX = 54 + (timeMinutes(points[points.length - 1].observed_at) / 1440) * 688;
   const firstX = 54 + (timeMinutes(points[0].observed_at) / 1440) * 688;
   return `${line} L${lastX.toFixed(1)},257 L${firstX.toFixed(1)},257 Z`;
@@ -693,32 +694,60 @@ function Hero({ power, connection }: { power: PowerSnapshot; connection: Connect
 
 function LoadChart({
   data,
+  fuelData,
   cursorTime,
   onCursorChange,
   mode,
+  selectedFuel,
+  dayLabel,
 }: {
   data: AreaLoad[];
+  fuelData: FuelMix[];
   cursorTime: string | null;
   onCursorChange: (time: string) => void;
   mode: LoadMode;
+  selectedFuel: FuelKey;
+  dayLabel: "今日" | "昨日";
 }) {
-  const selected = nearestByTime(data, cursorTime) ?? data[data.length - 1];
+  const activeFuel = fuelDefinitions.find((fuel) => fuel.key === selectedFuel) ?? fuelDefinitions[0];
+  const activeData: Array<AreaLoad | FuelMix> = mode === "energy" ? fuelData : data;
+  const selectedArea = mode === "energy" ? null : nearestByTime(data, cursorTime) ?? data[data.length - 1];
+  const selectedMix = mode === "energy" ? nearestByTime(fuelData, cursorTime) ?? fuelData[fuelData.length - 1] : null;
+  const selectedTime = selectedMix?.observed_at ?? selectedArea?.observed_at ?? null;
+  const selectedValue = selectedMix
+    ? Math.max(0, activeFuel.getValue(selectedMix))
+    : selectedArea?.total_load_mw ?? 0;
   const maxValue = useMemo(() => {
+    if (mode === "energy") {
+      const raw = Math.max(...fuelData.map((point) => Math.max(0, activeFuel.getValue(point))), 1);
+      const padded = raw * 1.08;
+      const magnitude = 10 ** Math.floor(Math.log10(padded));
+      const normalized = padded / magnitude;
+      const niceMultiplier = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+      return niceMultiplier * magnitude;
+    }
     const raw = Math.max(...data.map((point) => point.total_load_mw), 45000);
     return Math.ceil(raw / 10000) * 10000;
-  }, [data]);
-  const cursorX = selected ? 54 + (timeMinutes(selected.observed_at) / 1440) * 688 : 54;
-  const cursorY = selected ? 20 + (1 - selected.total_load_mw / maxValue) * 237 : 257;
+  }, [activeFuel, data, fuelData, mode]);
+  const cursorX = selectedTime ? 54 + (timeMinutes(selectedTime) / 1440) * 688 : 54;
+  const cursorY = selectedTime ? 20 + (1 - Math.min(selectedValue, maxValue) / maxValue) * 237 : 257;
   const tooltipX = Math.min(Math.max(cursorX - 102, 54), 522);
-  const tooltipHeight = mode === "total" ? 102 : 160;
+  const tooltipHeight = mode === "regions" ? 160 : mode === "energy" ? 126 : 102;
   const tooltipY = 247 - tooltipHeight;
+  const energyShare = selectedMix ? (selectedValue / Math.max(selectedMix.total_mw, 1)) * 100 : 0;
+  const chartAccent = mode === "energy" ? activeFuel.color : "var(--blue)";
+  const activeIndex = activeData.findIndex((point) => point.observed_at === selectedTime);
+  const chartLabel = mode === "energy" ? `${activeFuel.label}${dayLabel}發電曲線圖` : `${dayLabel}用電曲線圖`;
+  const axisValue = (value: number) => value >= 1000
+    ? `${formatNumber(value / 1000, value >= 10000 ? 0 : 1)}k`
+    : formatNumber(value);
 
   const updateFromPointer = (event: PointerEvent<SVGRectElement>) => {
-    if (!data.length) return;
+    if (!activeData.length) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
     const target = ratio * 1440;
-    const nearest = data.reduce((closest, point) =>
+    const nearest = activeData.reduce((closest, point) =>
       Math.abs(timeMinutes(point.observed_at) - target) <
       Math.abs(timeMinutes(closest.observed_at) - target)
         ? point
@@ -728,24 +757,34 @@ function LoadChart({
   };
 
   const updateFromKeyboard = (event: KeyboardEvent<SVGRectElement>) => {
-    if (!selected || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    if (!selectedTime || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const currentIndex = data.findIndex((point) => point.observed_at === selected.observed_at);
-    let nextIndex = currentIndex;
-    if (event.key === "ArrowLeft") nextIndex = Math.max(0, currentIndex - 1);
-    if (event.key === "ArrowRight") nextIndex = Math.min(data.length - 1, currentIndex + 1);
+    let nextIndex = activeIndex;
+    if (event.key === "ArrowLeft") nextIndex = Math.max(0, activeIndex - 1);
+    if (event.key === "ArrowRight") nextIndex = Math.min(activeData.length - 1, activeIndex + 1);
     if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = data.length - 1;
-    onCursorChange(data[nextIndex].observed_at);
+    if (event.key === "End") nextIndex = activeData.length - 1;
+    onCursorChange(activeData[nextIndex].observed_at);
   };
 
   return (
     <div className="load-chart-shell">
-      <svg className="load-chart" viewBox="0 0 760 292" role="img" aria-label="今日用電曲線圖">
+      <svg
+        className="load-chart"
+        viewBox="0 0 760 292"
+        role="img"
+        aria-label={chartLabel}
+        data-chart-mode={mode}
+        style={{ "--chart-accent": chartAccent } as CSSProperties}
+      >
         <defs>
           <linearGradient id="loadArea" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#2b7ee9" stopOpacity="0.24" />
             <stop offset="100%" stopColor="#2b7ee9" stopOpacity="0.015" />
+          </linearGradient>
+          <linearGradient id="energyArea" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={activeFuel.color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={activeFuel.color} stopOpacity="0.02" />
           </linearGradient>
         </defs>
         {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
@@ -755,7 +794,7 @@ function LoadChart({
             <g key={ratio}>
               <line x1="54" x2="742" y1={y} y2={y} className="chart-grid" />
               <text x="45" y={y + 4} textAnchor="end" className="chart-axis-label">
-                {formatNumber(value / 1000)}k
+                {axisValue(value)}
               </text>
             </g>
           );
@@ -770,34 +809,51 @@ function LoadChart({
         })}
         {mode === "total" ? (
           <>
-            <path d={areaPath(data, maxValue)} fill="url(#loadArea)" />
+            <path d={areaPath(data, (point) => point.total_load_mw, maxValue)} fill="url(#loadArea)" />
             <path d={linePath(data, (point) => point.total_load_mw, maxValue)} className="chart-line total" />
           </>
-        ) : (
+        ) : null}
+        {mode === "regions" ? (
           <>
             <path d={linePath(data, (point) => point.north_load_mw, maxValue)} className="chart-line north" />
             <path d={linePath(data, (point) => point.central_load_mw, maxValue)} className="chart-line central" />
             <path d={linePath(data, (point) => point.south_load_mw, maxValue)} className="chart-line south" />
             <path d={linePath(data, (point) => point.east_load_mw, maxValue)} className="chart-line east" />
           </>
-        )}
-        {selected && (
+        ) : null}
+        {mode === "energy" ? (
+          <>
+            <path d={areaPath(fuelData, (point) => Math.max(0, activeFuel.getValue(point)), maxValue)} fill="url(#energyArea)" />
+            <path
+              d={linePath(fuelData, (point) => Math.max(0, activeFuel.getValue(point)), maxValue)}
+              className="chart-line energy"
+              data-energy-key={activeFuel.key}
+            />
+          </>
+        ) : null}
+        {selectedTime && (
           <g className="chart-cursor" pointerEvents="none">
             <line x1={cursorX} x2={cursorX} y1="20" y2="257" />
             <circle cx={cursorX} cy={cursorY} r="6" />
             <g transform={`translate(${tooltipX} ${tooltipY})`}>
               <rect width="220" height={tooltipHeight} rx="14" />
-              <text x="16" y="25" className="tooltip-time">{formatTime(selected.observed_at)}</text>
-              <circle cx="19" cy="52" r="5" className="dot-total" />
-              <text x="33" y="57" className="tooltip-label">總用電</text>
-              <text x="204" y="57" textAnchor="end" className="tooltip-value">{formatNumber(selected.total_load_mw)} MW</text>
-              {mode === "regions" && (
+              <text x="16" y="25" className="tooltip-time">{formatTime(selectedTime)}</text>
+              <circle cx="19" cy="52" r="5" style={{ fill: chartAccent }} />
+              <text x="33" y="57" className="tooltip-label">{mode === "energy" ? activeFuel.label : "總用電"}</text>
+              <text x="204" y="57" textAnchor="end" className="tooltip-value">{formatNumber(selectedValue)} MW</text>
+              {mode === "regions" && selectedArea && (
                 <>
-                  <text x="16" y="88" className="tooltip-sub">北部 {formatNumber(selected.north_load_mw)}</text>
-                  <text x="116" y="88" className="tooltip-sub">中部 {formatNumber(selected.central_load_mw)}</text>
-                  <text x="16" y="116" className="tooltip-sub">南部 {formatNumber(selected.south_load_mw)}</text>
-                  <text x="116" y="116" className="tooltip-sub">東部 {formatNumber(selected.east_load_mw)}</text>
+                  <text x="16" y="88" className="tooltip-sub">北部 {formatNumber(selectedArea.north_load_mw)}</text>
+                  <text x="116" y="88" className="tooltip-sub">中部 {formatNumber(selectedArea.central_load_mw)}</text>
+                  <text x="16" y="116" className="tooltip-sub">南部 {formatNumber(selectedArea.south_load_mw)}</text>
+                  <text x="116" y="116" className="tooltip-sub">東部 {formatNumber(selectedArea.east_load_mw)}</text>
                   <text x="16" y="144" className="tooltip-note">單位：MW</text>
+                </>
+              )}
+              {mode === "energy" && (
+                <>
+                  <text x="16" y="86" className="tooltip-sub">當時占比 {energyShare.toFixed(1)}%</text>
+                  <text x="16" y="110" className="tooltip-note">拖曳或使用方向鍵探索</text>
                 </>
               )}
               {mode === "total" && <text x="16" y="84" className="tooltip-note">拖曳或使用方向鍵探索</text>}
@@ -816,31 +872,38 @@ function LoadChart({
           onKeyDown={updateFromKeyboard}
           tabIndex={0}
           role="slider"
-          aria-label="探索用電曲線時間"
+          aria-label={mode === "energy" ? `探索${activeFuel.label}發電曲線時間` : "探索用電曲線時間"}
           aria-valuemin={0}
-          aria-valuemax={Math.max(0, data.length - 1)}
-          aria-valuenow={Math.max(0, data.indexOf(selected))}
-          aria-valuetext={selected ? `${formatTime(selected.observed_at)}，總用電 ${formatNumber(selected.total_load_mw)} MW` : "無資料"}
+          aria-valuemax={Math.max(0, activeData.length - 1)}
+          aria-valuenow={Math.max(0, activeIndex)}
+          aria-valuetext={selectedTime ? `${formatTime(selectedTime)}，${mode === "energy" ? activeFuel.label : "總用電"} ${formatNumber(selectedValue)} MW` : "無資料"}
         />
       </svg>
     </div>
   );
 }
 
-function FuelMixCard({ mix }: { mix: FuelMix }) {
-  const [focusedFuel, setFocusedFuel] = useState<string | null>(null);
+function FuelMixCard({
+  mix,
+  focusedFuel,
+  onFuelSelect,
+  onClear,
+}: {
+  mix: FuelMix;
+  focusedFuel: FuelKey | null;
+  onFuelSelect: (fuel: FuelKey) => void;
+  onClear: () => void;
+}) {
   const values = fuelDefinitions.map((fuel) => ({ ...fuel, value: Math.max(0, fuel.getValue(mix)) }));
   const total = values.reduce((sum, fuel) => sum + fuel.value, 0) || 1;
-  let cursor = 0;
-  const gradient = values
-    .map((fuel) => {
-      const start = cursor;
-      const end = cursor + (fuel.value / total) * 100;
-      cursor = end;
-      const color = focusedFuel && focusedFuel !== fuel.key ? "var(--muted-ring)" : fuel.color;
-      return `${color} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
-    })
-    .join(", ");
+  const gradient = values.reduce<{ cursor: number; stops: string[] }>((result, fuel) => {
+    const end = result.cursor + (fuel.value / total) * 100;
+    const color = focusedFuel && focusedFuel !== fuel.key ? "var(--muted-ring)" : fuel.color;
+    return {
+      cursor: end,
+      stops: [...result.stops, `${color} ${result.cursor.toFixed(2)}% ${end.toFixed(2)}%`],
+    };
+  }, { cursor: 0, stops: [] }).stops.join(", ");
   const focused = values.find((fuel) => fuel.key === focusedFuel) ?? null;
 
   return (
@@ -849,6 +912,7 @@ function FuelMixCard({ mix }: { mix: FuelMix }) {
         <div>
           <span className="section-kicker"><Leaf size={15} /> 即時發電</span>
           <h2>能源從哪裡來？</h2>
+          <p>點選能源，即時查看比例與今日發電曲線。</p>
         </div>
         <span className="panel-total">總計 {formatNumber(mix.total_mw)} MW</span>
       </div>
@@ -856,7 +920,7 @@ function FuelMixCard({ mix }: { mix: FuelMix }) {
         <button
           className="donut-wrap"
           type="button"
-          onClick={() => setFocusedFuel(null)}
+          onClick={onClear}
           aria-label={focused ? `目前聚焦${focused.label}，按下顯示全部能源` : "即時發電結構"}
         >
           <span className="donut" style={{ background: `conic-gradient(${gradient})` }}>
@@ -884,8 +948,11 @@ function FuelMixCard({ mix }: { mix: FuelMix }) {
                 key={fuel.key}
                 className={`fuel-row ${isFocused ? "is-focused" : ""} ${focusedFuel && !isFocused ? "is-muted" : ""}`}
                 type="button"
-                onClick={() => setFocusedFuel(isFocused ? null : fuel.key)}
+                onClick={() => onFuelSelect(fuel.key)}
                 aria-pressed={isFocused}
+                aria-label={`查看${fuel.label}發電曲線與比例`}
+                data-fuel-key={fuel.key}
+                style={{ "--fuel-color": fuel.color } as CSSProperties}
               >
                 <span className="fuel-icon" style={{ color: fuel.color }}><Icon size={16} /></span>
                 <span>{fuel.label}</span>
@@ -1648,6 +1715,7 @@ export function PowerDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [curveOffset, setCurveOffset] = useState(0);
   const [loadMode, setLoadMode] = useState<LoadMode>("total");
+  const [selectedFuelKey, setSelectedFuelKey] = useState<FuelKey | null>(null);
   const [cursorTime, setCursorTime] = useState<string | null>(fallbackData.areaLoads.at(-1)?.observed_at ?? null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -1698,6 +1766,36 @@ export function PowerDashboard() {
   };
 
   const currentMix = nearestByTime(data.fuelMix, cursorTime) ?? data.fuelMix[data.fuelMix.length - 1];
+  const activeFuelKey = selectedFuelKey ?? fuelDefinitions[0].key;
+  const activeFuel = fuelDefinitions.find((fuel) => fuel.key === activeFuelKey) ?? fuelDefinitions[0];
+
+  const changeLoadMode = (nextMode: LoadMode) => {
+    setLoadMode(nextMode);
+    if (nextMode === "energy") {
+      setSelectedFuelKey((current) => current ?? fuelDefinitions[0].key);
+    } else {
+      setSelectedFuelKey(null);
+    }
+  };
+
+  const selectEnergyCurve = (fuel: FuelKey) => {
+    setSelectedFuelKey(fuel);
+    setLoadMode("energy");
+  };
+
+  const toggleEnergyCurve = (fuel: FuelKey) => {
+    if (loadMode === "energy" && selectedFuelKey === fuel) {
+      setSelectedFuelKey(null);
+      setLoadMode("total");
+      return;
+    }
+    selectEnergyCurve(fuel);
+  };
+
+  const clearEnergyCurve = () => {
+    setSelectedFuelKey(null);
+    if (loadMode === "energy") setLoadMode("total");
+  };
 
   return (
     <div className="power-app" id="top">
@@ -1720,12 +1818,12 @@ export function PowerDashboard() {
         )}
         <Hero power={data.power} connection={connection} />
         <section className="dashboard-grid" aria-label="即時電力圖表">
-          <article className="panel load-card">
+          <article className="panel load-card" data-load-mode={loadMode} data-selected-fuel={loadMode === "energy" ? activeFuelKey : undefined}>
             <div className="panel-heading load-heading">
               <div>
                 <span className="section-kicker"><Bolt size={15} /> 24 小時脈動</span>
                 <h2>{curveOffset === 0 ? "今日" : "昨日"}用電曲線</h2>
-                <p>移動游標，能源組成會同步到相同時間。</p>
+                <p>{loadMode === "energy" ? `正在查看${activeFuel.label}發電量；右側比例會同步到相同時間。` : "移動游標，能源組成會同步到相同時間。"}</p>
               </div>
               <div className="chart-controls">
                 <div className="segmented-control" role="group" aria-label="選擇日期">
@@ -1733,22 +1831,56 @@ export function PowerDashboard() {
                   <button className={curveOffset === -1 ? "is-active" : ""} type="button" onClick={() => setCurveOffset(-1)}>昨日</button>
                 </div>
                 <div className="segmented-control subtle" role="group" aria-label="選擇曲線分類">
-                  <button className={loadMode === "total" ? "is-active" : ""} type="button" onClick={() => setLoadMode("total")}>總用電</button>
-                  <button className={loadMode === "regions" ? "is-active" : ""} type="button" onClick={() => setLoadMode("regions")}>各區</button>
+                  <button className={loadMode === "total" ? "is-active" : ""} type="button" onClick={() => changeLoadMode("total")}>總用電</button>
+                  <button className={loadMode === "regions" ? "is-active" : ""} type="button" onClick={() => changeLoadMode("regions")}>各區</button>
+                  <button className={loadMode === "energy" ? "is-active" : ""} type="button" onClick={() => changeLoadMode("energy")}>依能源</button>
                 </div>
               </div>
             </div>
-            <div className="chart-legend">
-              {loadMode === "total" ? <span><i className="legend-dot total" /> 實際用電</span> : (
+            <div className={`chart-legend ${loadMode === "energy" ? "is-energy" : ""}`}>
+              {loadMode === "total" ? <span><i className="legend-dot total" /> 實際用電</span> : null}
+              {loadMode === "regions" ? (
                 <>
                   {(Object.keys(regionMeta) as RegionKey[]).map((key) => <span key={key}><i className={`legend-dot ${key}`} /> {regionMeta[key].label}</span>)}
                 </>
-              )}
+              ) : null}
+              {loadMode === "energy" ? (
+                <div className="energy-curve-selector" role="group" aria-label="選擇能源曲線">
+                  {fuelDefinitions.map((fuel) => {
+                    const Icon = fuel.icon;
+                    return (
+                      <button
+                        key={fuel.key}
+                        type="button"
+                        className={activeFuelKey === fuel.key ? "is-active" : ""}
+                        onClick={() => selectEnergyCurve(fuel.key)}
+                        aria-pressed={activeFuelKey === fuel.key}
+                        style={{ "--fuel-color": fuel.color } as CSSProperties}
+                      >
+                        <Icon size={14} /> {fuel.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
               <span className="chart-unit">單位：MW</span>
             </div>
-            <LoadChart data={data.areaLoads} cursorTime={cursorTime} onCursorChange={setCursorTime} mode={loadMode} />
+            <LoadChart
+              data={data.areaLoads}
+              fuelData={data.fuelMix}
+              cursorTime={cursorTime}
+              onCursorChange={setCursorTime}
+              mode={loadMode}
+              selectedFuel={activeFuelKey}
+              dayLabel={curveOffset === 0 ? "今日" : "昨日"}
+            />
           </article>
-          <FuelMixCard mix={currentMix} />
+          <FuelMixCard
+            mix={currentMix}
+            focusedFuel={selectedFuelKey}
+            onFuelSelect={toggleEnergyCurve}
+            onClear={clearEnergyCurve}
+          />
         </section>
         <section className="region-grid" aria-label="區域電力供需">
           <RegionCard area={data.areaSnapshot} />

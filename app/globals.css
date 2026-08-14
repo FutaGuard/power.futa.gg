@@ -958,10 +958,55 @@ html[data-theme="dark"] .hero-section {
 .legend-dot.east { background: #8a79db; }
 
 .chart-unit {
+  flex: 0 0 auto;
   margin-left: auto;
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.chart-legend.is-energy {
+  gap: 10px;
+}
+
+.energy-curve-selector {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 5px;
+  min-width: 0;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.energy-curve-selector button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 9px;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.energy-curve-selector button:hover,
+.energy-curve-selector button.is-active {
+  color: var(--fuel-color);
+  border-color: color-mix(in oklab, var(--fuel-color) 32%, var(--line));
+  background: color-mix(in oklab, var(--fuel-color) 9%, var(--surface-solid));
+}
+
+.energy-curve-selector button:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--fuel-color) 46%, transparent);
+  outline-offset: 1px;
 }
 
 .load-chart-shell {
@@ -1002,15 +1047,16 @@ html[data-theme="dark"] .hero-section {
 .chart-line.central { stroke: #35b779; }
 .chart-line.south { stroke: #f2a93b; }
 .chart-line.east { stroke: #8a79db; }
+.chart-line.energy { stroke: var(--chart-accent); }
 
 .chart-cursor line {
-  stroke: color-mix(in oklab, var(--blue) 58%, var(--line));
+  stroke: color-mix(in oklab, var(--chart-accent) 58%, var(--line));
   stroke-dasharray: 3 3;
 }
 
 .chart-cursor > circle {
   fill: var(--surface-solid);
-  stroke: var(--blue);
+  stroke: var(--chart-accent);
   stroke-width: 3;
 }
 
@@ -1154,6 +1200,11 @@ html[data-theme="dark"] .hero-section {
 .fuel-row.is-focused {
   border-color: var(--line);
   background: var(--surface-muted);
+}
+
+.fuel-row.is-focused {
+  border-color: color-mix(in oklab, var(--fuel-color) 34%, var(--line));
+  box-shadow: inset 3px 0 var(--fuel-color);
 }
 
 .fuel-row:focus-visible {
