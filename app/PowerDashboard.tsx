@@ -739,9 +739,14 @@ function LoadChart({
   }, [activeFuel, data, fuelData, mode]);
   const cursorX = selectedTime ? 54 + (timeMinutes(selectedTime) / 1440) * 688 : 54;
   const cursorY = selectedTime ? 20 + (1 - Math.min(selectedValue, maxValue) / maxValue) * 237 : 257;
-  const tooltipX = Math.min(Math.max(cursorX - 102, 54), 522);
+  const tooltipWidth = 220;
+  const tooltipGap = 14;
+  const tooltipOnRight = cursorX + tooltipGap + tooltipWidth <= 742;
+  const tooltipX = tooltipOnRight
+    ? cursorX + tooltipGap
+    : cursorX - tooltipGap - tooltipWidth;
   const tooltipHeight = mode === "regions" ? 160 : mode === "energy" ? 126 : 102;
-  const tooltipY = 247 - tooltipHeight;
+  const tooltipY = cursorY + tooltipGap;
   const energyShare = selectedMix ? (selectedValue / Math.max(selectedMix.total_mw, 1)) * 100 : 0;
   const chartAccent = mode === "energy" ? activeFuel.color : "var(--blue)";
   const activeIndex = activeData.findIndex((point) => point.observed_at === selectedTime);
@@ -777,7 +782,7 @@ function LoadChart({
     <div className="load-chart-shell">
       <svg
         className="load-chart"
-        viewBox="0 0 760 292"
+        viewBox="0 0 760 432"
         role="img"
         aria-label={chartLabel}
         data-chart-mode={mode}
@@ -841,7 +846,10 @@ function LoadChart({
           <g className="chart-cursor" pointerEvents="none">
             <line x1={cursorX} x2={cursorX} y1="20" y2="257" />
             <circle cx={cursorX} cy={cursorY} r="6" />
-            <g transform={`translate(${tooltipX} ${tooltipY})`}>
+            <g
+              transform={`translate(${tooltipX} ${tooltipY})`}
+              data-tooltip-placement={tooltipOnRight ? "right-bottom" : "left-bottom"}
+            >
               <rect width="220" height={tooltipHeight} rx="14" />
               <text x="16" y="25" className="tooltip-time">{formatTime(selectedTime)}</text>
               <circle cx="19" cy="52" r="5" style={{ fill: chartAccent }} />

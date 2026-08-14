@@ -1018,7 +1018,8 @@ html[data-theme="dark"] .hero-section {
 .load-chart {
   display: block;
   width: 100%;
-  height: 350px;
+  height: auto;
+  aspect-ratio: 760 / 432;
   overflow: visible;
 }
 
@@ -2765,7 +2766,7 @@ html[data-theme="dark"] .county-shape {
   .generator-section { padding: 18px 14px; border-radius: 19px; }
   .load-heading { flex-direction: column; }
   .chart-controls { width: 100%; justify-content: space-between; overflow-x: auto; }
-  .load-chart { width: 740px; max-width: none; height: 320px; }
+  .load-chart { width: 740px; max-width: none; height: auto; }
   .load-chart-shell { overflow-x: auto; scrollbar-width: thin; }
   .mix-content { grid-template-columns: 1fr; }
   .donut { width: 190px; }
