@@ -74,3 +74,10 @@ test("uses the same focus-following tooltip placement for live and history chart
   assert.match(source, /className="history-tooltip-dot"/);
   assert.match(css, /\.history-chart\s*\{[\s\S]*?aspect-ratio:\s*980\s*\/\s*408;/);
 });
+
+test("keeps the hero question on one line on mobile", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(css, /\.hero-copy h1\s*\{[^}]*white-space:\s*nowrap;/);
+  assert.match(css, /font-size:\s*clamp\(20px,\s*7\.6vw,\s*50px\)/);
+});

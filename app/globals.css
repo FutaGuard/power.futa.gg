@@ -2748,7 +2748,12 @@ html[data-theme="dark"] .county-shape {
   .site-main { gap: 10px; padding-top: 11px; }
   .hero-section { display: grid; grid-template-columns: 1fr; gap: 10px; border-radius: 21px; padding-bottom: 10px; }
   .hero-copy { grid-column: auto; min-height: 285px; padding: 27px 20px 20px; }
-  .hero-copy h1 { max-width: 460px; margin-top: 13px; font-size: clamp(34px, 11vw, 50px); }
+  .hero-copy h1 {
+    max-width: 100%;
+    margin-top: 13px;
+    font-size: clamp(20px, 7.6vw, 50px);
+    white-space: nowrap;
+  }
   .hero-number { gap: 8px; }
   .hero-number strong { font-size: clamp(54px, 17vw, 78px); }
   .hero-number span { font-size: 24px; }
@@ -2863,7 +2868,7 @@ html[data-theme="dark"] .county-shape {
   .brand-copy strong { font-size: 15px; }
   .sync-button { display: none; }
   .hero-copy { min-height: 265px; }
-  .hero-copy h1 { font-size: 34px; }
+  .hero-copy h1 { font-size: clamp(20px, 7.6vw, 36px); }
   .hero-number strong { font-size: 54px; }
   .hero-number span { font-size: 18px; }
   .hero-meta { gap: 8px; }
