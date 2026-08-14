@@ -1153,10 +1153,17 @@ function RegionCard({ area }: { area: AreaSnapshot }) {
                 aria-pressed={selected}
               >
                 <span className="region-name"><span className="region-symbol"><Zap size={15} /></span>{region.label}</span>
-                <span><small>發電</small><strong>{formatWanKw(region.generation)}</strong><em>萬瓩</em></span>
-                <span><small>用電</small><strong>{formatWanKw(region.load)}</strong><em>萬瓩</em></span>
-                <span className={region.difference >= 0 ? "positive" : "negative"}>
-                  <small>差額</small><strong>{region.difference >= 0 ? "+" : ""}{formatWanKw(region.difference)}</strong><em>萬瓩</em>
+                <span className="region-metric">
+                  <small>發電</small>
+                  <span className="region-metric-value"><strong>{formatWanKw(region.generation)}</strong><em>萬瓩</em></span>
+                </span>
+                <span className="region-metric">
+                  <small>用電</small>
+                  <span className="region-metric-value"><strong>{formatWanKw(region.load)}</strong><em>萬瓩</em></span>
+                </span>
+                <span className={`region-metric ${region.difference >= 0 ? "positive" : "negative"}`}>
+                  <small>差額</small>
+                  <span className="region-metric-value"><strong>{region.difference >= 0 ? "+" : ""}{formatWanKw(region.difference)}</strong><em>萬瓩</em></span>
                 </span>
                 <span className="flow-state">{region.difference >= 0 ? "淨輸出" : "淨輸入"}<ChevronRight size={15} /></span>
               </button>

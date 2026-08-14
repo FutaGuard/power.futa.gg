@@ -90,3 +90,14 @@ test("keeps the desktop fuel donut value inside its center", async () => {
   assert.match(valueRule, /font-size:\s*clamp\(21px,\s*1\.8vw,\s*25px\)/);
   assert.match(valueRule, /white-space:\s*nowrap/);
 });
+
+test("keeps mobile regional units aligned and generator rows full width", async () => {
+  const response = await render();
+  const html = await response.text();
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(html, /class="region-metric-value"><strong>[^<]+<\/strong><em>萬瓩<\/em>/);
+  assert.match(css, /\.region-metric-value\s*\{[^}]*white-space:\s*nowrap;/);
+  assert.match(css, /\.generator-table tbody,[\s\S]*?\.generator-table td\s*\{\s*display:\s*block;/);
+  assert.match(css, /\.generator-table-wrap,[\s\S]*?\.generator-table td\s*\{\s*width:\s*100%/);
+});
