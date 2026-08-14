@@ -98,6 +98,16 @@ test("keeps mobile regional units aligned and generator rows full width", async 
 
   assert.match(html, /class="region-metric-value"><strong>[^<]+<\/strong><em>萬瓩<\/em>/);
   assert.match(css, /\.region-metric-value\s*\{[^}]*white-space:\s*nowrap;/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.region-metric-value\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*1fr;/);
   assert.match(css, /\.generator-table tbody,[\s\S]*?\.generator-table td\s*\{\s*display:\s*block;/);
   assert.match(css, /\.generator-table-wrap,[\s\S]*?\.generator-table td\s*\{\s*width:\s*100%/);
+});
+
+test("keeps the mobile header aligned with a visible live status", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(css, /\.site-header\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/);
+  assert.match(css, /\.header-actions\s*\{[^}]*grid-column:\s*2;[^}]*justify-self:\s*end;/);
+  assert.match(css, /\.sync-copy\s*\{[^}]*display:\s*grid;[^}]*white-space:\s*nowrap;/);
+  assert.doesNotMatch(css, /\.sync-button\s*\{\s*display:\s*none;/);
 });

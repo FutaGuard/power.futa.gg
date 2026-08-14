@@ -2735,10 +2735,24 @@ html[data-theme="dark"] .county-shape {
   .dashboard-grid > *,
   .region-grid > *,
   .history-content-grid > * { min-width: 0; }
-  .site-header { top: 8px; min-height: 58px; padding: 7px 8px 7px 10px; border-radius: 16px; }
+  .site-header {
+    top: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    min-height: 58px;
+    padding: 7px 8px 7px 10px;
+    border-radius: 16px;
+  }
+  .brand { min-width: 0; }
   .power-mark { --mark-size: 38px !important; border-radius: 11px 11px 13px 9px; }
   .brand-copy strong { font-size: 17px; }
   .brand-copy small { display: none; }
+  .header-actions {
+    grid-column: 2;
+    justify-self: end;
+    gap: 5px;
+    min-width: max-content;
+  }
   .menu-button { display: inline-grid; }
   .main-nav {
     position: absolute;
@@ -2758,7 +2772,21 @@ html[data-theme="dark"] .county-shape {
   .main-nav a { min-height: 43px; justify-content: center; }
   .main-nav a::after { display: none; }
   .sync-button,
-  .icon-button { width: 39px; height: 39px; min-height: 39px; }
+  .icon-button { height: 39px; min-height: 39px; }
+  .icon-button { width: 39px; }
+  .sync-button {
+    width: auto;
+    gap: 6px;
+    padding: 0 9px;
+    justify-content: center;
+  }
+  .sync-copy {
+    display: grid;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .sync-copy small,
+  .sync-button > svg { display: none; }
   .site-main { gap: 10px; padding-top: 11px; }
   .hero-section { display: grid; grid-template-columns: 1fr; gap: 10px; border-radius: 21px; padding-bottom: 10px; }
   .hero-copy { grid-column: auto; min-height: 285px; padding: 27px 20px 20px; }
@@ -2802,6 +2830,13 @@ html[data-theme="dark"] .county-shape {
   .taiwan-map { height: 385px; }
   .map-tooltip { right: 8%; bottom: 24px; }
   .region-list { padding-top: 0; }
+  .region-metric-value {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 1px;
+  }
+  .region-row em { justify-self: start; line-height: 1.2; }
   .history-heading { flex-direction: column; gap: 12px; }
   .history-heading p { font-size: 13px; }
   .history-state { align-self: flex-start; }
@@ -2889,7 +2924,6 @@ html[data-theme="dark"] .county-shape {
 @media (max-width: 470px) {
   .brand { gap: 7px; }
   .brand-copy strong { font-size: 15px; }
-  .sync-button { display: none; }
   .hero-copy { min-height: 265px; }
   .hero-copy h1 { font-size: clamp(20px, 7.6vw, 36px); }
   .hero-number strong { font-size: 54px; }
@@ -2913,8 +2947,8 @@ html[data-theme="dark"] .county-shape {
   .region-list { grid-template-columns: 1fr; }
   .region-row { gap: 10px 4px; min-height: 96px; padding: 10px; }
   .region-metric-value { gap: 2px; }
-  .region-row strong { font-size: clamp(11px, 3.15vw, 13px); letter-spacing: -0.05em; }
-  .region-row em { font-size: 8px; }
+  .region-row strong { font-size: clamp(12px, 3.6vw, 14px); letter-spacing: -0.05em; }
+  .region-row em { font-size: 9px; }
   .flow-legend { gap: 7px; }
   .history-summary { grid-template-columns: 1fr; }
   .history-summary button { min-height: 82px; }
