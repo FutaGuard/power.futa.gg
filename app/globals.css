@@ -1164,10 +1164,12 @@ html[data-theme="dark"] .hero-section {
 }
 
 .donut-hole strong {
+  max-width: 100%;
   font-family: var(--font-mono);
-  font-size: clamp(22px, 2.4vw, 32px);
+  font-size: clamp(21px, 1.8vw, 25px);
   letter-spacing: -0.07em;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .donut-hole span {

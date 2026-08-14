@@ -81,3 +81,12 @@ test("keeps the hero question on one line on mobile", async () => {
   assert.match(css, /\.hero-copy h1\s*\{[^}]*white-space:\s*nowrap;/);
   assert.match(css, /font-size:\s*clamp\(20px,\s*7\.6vw,\s*50px\)/);
 });
+
+test("keeps the desktop fuel donut value inside its center", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const valueRule = css.match(/\.donut-hole strong\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+
+  assert.match(valueRule, /max-width:\s*100%/);
+  assert.match(valueRule, /font-size:\s*clamp\(21px,\s*1\.8vw,\s*25px\)/);
+  assert.match(valueRule, /white-space:\s*nowrap/);
+});
