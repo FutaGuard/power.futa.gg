@@ -645,7 +645,15 @@ function CircularGauge({ value }: { value: number }) {
 
 function MetricInfo({ label, text }: { label: string; text: string }) {
   return (
-    <details className="metric-info">
+    <details
+      className="metric-info"
+      onToggle={(event) => {
+        const info = event.currentTarget;
+        const hero = info.closest<HTMLElement>(".hero-section");
+        info.closest<HTMLElement>(".hero-stat")?.toggleAttribute("data-metric-info-open", info.open);
+        hero?.toggleAttribute("data-metric-info-open", Boolean(hero.querySelector(".metric-info[open]")));
+      }}
+    >
       <summary aria-label={label}>
         <Info size={14} aria-hidden="true" />
       </summary>

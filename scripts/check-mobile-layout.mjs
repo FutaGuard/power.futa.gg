@@ -7,6 +7,7 @@ import path from "node:path";
 const targetUrl = process.argv[2] ?? "http://127.0.0.1:3000";
 const screenshotPath = process.argv[3];
 const diagnosticCss = process.env.POWER_LAYOUT_CSS;
+const metricInfoOnly = process.env.POWER_CHECK_METRIC_INFO_ONLY === "1";
 const viewport = {
   width: Number(process.env.POWER_VIEWPORT_WIDTH ?? 390),
   height: Number(process.env.POWER_VIEWPORT_HEIGHT ?? 844),
@@ -156,6 +157,17 @@ try {
     await delay(100);
   }
 
+  const metricClick = await cdp.send("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => {
+      const summary = document.querySelector(".gauge-card .metric-info summary");
+      if (!(summary instanceof HTMLElement)) return false;
+      summary.click();
+      return true;
+    })()`,
+  });
+  await delay(100);
+
   const energyBefore = await cdp.send("Runtime.evaluate", {
     returnByValue: true,
     expression: `(() => ({
@@ -250,6 +262,17 @@ try {
         peakIconRect.top < peakInfoRect.bottom &&
         peakIconRect.bottom > peakInfoRect.top
       );
+      const metricInfo = document.querySelector(".gauge-card .metric-info");
+      const metricPopover = document.querySelector(".gauge-card .metric-info-popover");
+      const metricCard = document.querySelector(".gauge-card");
+      const heroSection = document.querySelector(".hero-section");
+      const metricPopoverRect = metricPopover?.getBoundingClientRect();
+      const metricProbe = metricPopoverRect
+        ? document.elementFromPoint(
+          Math.min(metricPopoverRect.right - 16, viewportWidth - 1),
+          Math.min(metricPopoverRect.bottom - 16, window.innerHeight - 1),
+        )
+        : null;
       return {
         url: location.href,
         title: document.title,
@@ -271,6 +294,18 @@ try {
           icon: peakIcon ? describe(peakIcon) : null,
           info: peakInfo ? describe(peakInfo) : null,
           overlaps: peakIconInfoOverlap,
+        },
+        metricInfoLayout: {
+          isOpen: metricInfo instanceof HTMLDetailsElement && metricInfo.open,
+          parentElevated: metricCard?.hasAttribute("data-metric-info-open") ?? false,
+          heroAllowsOverflow: heroSection?.hasAttribute("data-metric-info-open") ?? false,
+          popover: metricPopover ? describe(metricPopover) : null,
+          fitsViewport: Boolean(
+            metricPopoverRect &&
+            metricPopoverRect.left >= 0 &&
+            metricPopoverRect.right <= viewportWidth
+          ),
+          foreground: Boolean(metricPopover && metricProbe && metricPopover.contains(metricProbe)),
         },
         escapedPanels,
         outsideViewport,
@@ -307,6 +342,7 @@ try {
     clicked: energyClick.result.value,
     after: energyAfter.result.value,
   };
+  result.metricInteraction = { clicked: metricClick.result.value };
   if (screenshotPath) {
     const screenshot = await cdp.send("Page.captureScreenshot", {
       format: "png",
@@ -316,7 +352,14 @@ try {
   }
 
   console.log(JSON.stringify(result, null, 2));
-  if (
+  const metricInfoFailed =
+    !result.metricInteraction.clicked ||
+    !result.metricInfoLayout.isOpen ||
+    !result.metricInfoLayout.parentElevated ||
+    !result.metricInfoLayout.heroAllowsOverflow ||
+    !result.metricInfoLayout.fitsViewport ||
+    !result.metricInfoLayout.foreground;
+  const generalLayoutFailed =
     !result.appFound ||
     result.url.startsWith("chrome-error:") ||
     result.horizontalOverflow > 1 ||
@@ -330,8 +373,8 @@ try {
     result.energyInteraction.after.solarPressed !== "true" ||
     !result.energyInteraction.after.donutSummary?.includes("太陽能") ||
     !result.energyInteraction.after.donutSummary?.includes("%") ||
-    result.escapedPanels.length > 0
-  ) {
+    result.escapedPanels.length > 0;
+  if (metricInfoFailed || (!metricInfoOnly && generalLayoutFailed)) {
     process.exitCode = 1;
   }
 } finally {

@@ -518,7 +518,8 @@ html[data-theme="dark"] .hero-section {
   margin-right: 17px;
 }
 
-.hero-stat:has(.metric-info[open]) {
+.hero-stat:has(.metric-info[open]),
+.hero-stat[data-metric-info-open] {
   z-index: 5;
 }
 
@@ -2793,7 +2794,8 @@ html[data-theme="dark"] .county-shape {
   .sync-button > svg { display: none; }
   .site-main { gap: 10px; padding-top: 11px; }
   .hero-section { display: grid; grid-template-columns: 1fr; gap: 10px; border-radius: 21px; padding-bottom: 10px; }
-  .hero-section:has(.metric-info[open]) { overflow: visible; }
+  .hero-section:has(.metric-info[open]),
+  .hero-section[data-metric-info-open] { overflow: visible; }
   .hero-copy { grid-column: auto; min-height: 285px; padding: 27px 20px 20px; }
   .hero-copy h1 {
     max-width: 100%;
@@ -2813,6 +2815,13 @@ html[data-theme="dark"] .county-shape {
   .hero-stat:last-child { grid-column: auto; min-height: 0; margin: 0 10px; }
   .gauge-card { display: grid; grid-template-columns: 1fr 150px; align-items: center; }
   .gauge-card .card-label { grid-column: 1; }
+  .gauge-card .metric-info { position: static; }
+  .gauge-card .metric-info-popover {
+    top: 48px;
+    right: 12px;
+    width: min(310px, calc(100% - 24px));
+  }
+  .gauge-card .metric-info-popover::before { display: none; }
   .circular-gauge { grid-column: 2; grid-row: 1 / 3; width: 125px; height: 125px; }
   .gauge-values { grid-column: 1; }
   .peak-card { min-height: 220px; }
