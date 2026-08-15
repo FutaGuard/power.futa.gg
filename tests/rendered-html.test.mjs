@@ -119,5 +119,5 @@ test("keeps mobile metric information above adjacent hero cards", async () => {
   assert.match(css, /\.hero-stat:has\(\.metric-info\[open\]\)\s*,[\s\S]*?\.hero-stat\[data-metric-info-open\]\s*\{[^}]*z-index:\s*5;/);
   assert.match(source, /onToggle=\{\(event\) => \{[\s\S]*?data-metric-info-open/);
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.gauge-card \.metric-info\s*\{[^}]*position:\s*static;/);
-  assert.match(css, /\.gauge-card \.metric-info-popover\s*\{[^}]*right:\s*12px;[^}]*width:\s*min\(310px,\s*calc\(100% - 24px\)\);/);
+  assert.match(css, /\.gauge-card \.metric-info-popover\s*\{[^}]*top:\s*76px;[^}]*right:\s*12px;[^}]*width:\s*min\(310px,\s*calc\(100% - 24px\)\);/);
 });

@@ -263,14 +263,22 @@ try {
         peakIconRect.bottom > peakInfoRect.top
       );
       const metricInfo = document.querySelector(".gauge-card .metric-info");
+      const metricSummary = document.querySelector(".gauge-card .metric-info summary");
       const metricPopover = document.querySelector(".gauge-card .metric-info-popover");
       const metricCard = document.querySelector(".gauge-card");
       const heroSection = document.querySelector(".hero-section");
       const metricPopoverRect = metricPopover?.getBoundingClientRect();
+      const metricSummaryRect = metricSummary?.getBoundingClientRect();
       const metricProbe = metricPopoverRect
         ? document.elementFromPoint(
           Math.min(metricPopoverRect.right - 16, viewportWidth - 1),
           Math.min(metricPopoverRect.bottom - 16, window.innerHeight - 1),
+        )
+        : null;
+      const metricSummaryProbe = metricSummaryRect
+        ? document.elementFromPoint(
+          metricSummaryRect.left + metricSummaryRect.width / 2,
+          metricSummaryRect.top + metricSummaryRect.height / 2,
         )
         : null;
       return {
@@ -299,6 +307,7 @@ try {
           isOpen: metricInfo instanceof HTMLDetailsElement && metricInfo.open,
           parentElevated: metricCard?.hasAttribute("data-metric-info-open") ?? false,
           heroAllowsOverflow: heroSection?.hasAttribute("data-metric-info-open") ?? false,
+          summary: metricSummary ? describe(metricSummary) : null,
           popover: metricPopover ? describe(metricPopover) : null,
           fitsViewport: Boolean(
             metricPopoverRect &&
@@ -306,6 +315,7 @@ try {
             metricPopoverRect.right <= viewportWidth
           ),
           foreground: Boolean(metricPopover && metricProbe && metricPopover.contains(metricProbe)),
+          triggerReachable: Boolean(metricSummary && metricSummaryProbe && metricSummary.contains(metricSummaryProbe)),
         },
         escapedPanels,
         outsideViewport,
@@ -343,6 +353,19 @@ try {
     after: energyAfter.result.value,
   };
   result.metricInteraction = { clicked: metricClick.result.value };
+  const metricSummary = result.metricInfoLayout.summary;
+  if (metricSummary) {
+    const x = metricSummary.left + metricSummary.width / 2;
+    const y = metricSummary.top + metricSummary.height / 2;
+    await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+    await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+    await delay(100);
+  }
+  const metricClosed = await cdp.send("Runtime.evaluate", {
+    returnByValue: true,
+    expression: '(() => !document.querySelector(".gauge-card .metric-info")?.open)()',
+  });
+  result.metricInteraction.closed = metricClosed.result.value;
   if (screenshotPath) {
     const screenshot = await cdp.send("Page.captureScreenshot", {
       format: "png",
@@ -354,11 +377,13 @@ try {
   console.log(JSON.stringify(result, null, 2));
   const metricInfoFailed =
     !result.metricInteraction.clicked ||
+    !result.metricInteraction.closed ||
     !result.metricInfoLayout.isOpen ||
     !result.metricInfoLayout.parentElevated ||
     !result.metricInfoLayout.heroAllowsOverflow ||
     !result.metricInfoLayout.fitsViewport ||
-    !result.metricInfoLayout.foreground;
+    !result.metricInfoLayout.foreground ||
+    !result.metricInfoLayout.triggerReachable;
   const generalLayoutFailed =
     !result.appFound ||
     result.url.startsWith("chrome-error:") ||

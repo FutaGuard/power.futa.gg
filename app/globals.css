@@ -2817,7 +2817,7 @@ html[data-theme="dark"] .county-shape {
   .gauge-card .card-label { grid-column: 1; }
   .gauge-card .metric-info { position: static; }
   .gauge-card .metric-info-popover {
-    top: 48px;
+    top: 76px;
     right: 12px;
     width: min(310px, calc(100% - 24px));
   }
