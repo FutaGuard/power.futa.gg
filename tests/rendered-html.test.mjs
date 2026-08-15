@@ -111,3 +111,10 @@ test("keeps the mobile header aligned with a visible live status", async () => {
   assert.match(css, /\.sync-copy\s*\{[^}]*display:\s*grid;[^}]*white-space:\s*nowrap;/);
   assert.doesNotMatch(css, /\.sync-button\s*\{\s*display:\s*none;/);
 });
+
+test("keeps mobile metric information above adjacent hero cards", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(css, /\.hero-stat:has\(\.metric-info\[open\]\)\s*\{[^}]*z-index:\s*5;/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.hero-section:has\(\.metric-info\[open\]\)\s*\{[^}]*overflow:\s*visible;/);
+});

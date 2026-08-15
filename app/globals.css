@@ -518,6 +518,10 @@ html[data-theme="dark"] .hero-section {
   margin-right: 17px;
 }
 
+.hero-stat:has(.metric-info[open]) {
+  z-index: 5;
+}
+
 .card-label {
   display: flex;
   align-items: center;
@@ -2789,6 +2793,7 @@ html[data-theme="dark"] .county-shape {
   .sync-button > svg { display: none; }
   .site-main { gap: 10px; padding-top: 11px; }
   .hero-section { display: grid; grid-template-columns: 1fr; gap: 10px; border-radius: 21px; padding-bottom: 10px; }
+  .hero-section:has(.metric-info[open]) { overflow: visible; }
   .hero-copy { grid-column: auto; min-height: 285px; padding: 27px 20px 20px; }
   .hero-copy h1 {
     max-width: 100%;
