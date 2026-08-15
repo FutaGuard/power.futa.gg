@@ -845,7 +845,7 @@ html[data-theme="dark"] .hero-section {
 
 .load-card,
 .mix-card {
-  min-height: 470px;
+  min-height: 430px;
   padding: 22px 23px 16px;
 }
 
@@ -1019,7 +1019,7 @@ html[data-theme="dark"] .hero-section {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 760 / 432;
+  aspect-ratio: 760 / 356;
   overflow: visible;
 }
 

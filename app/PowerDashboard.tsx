@@ -413,15 +413,23 @@ function formatWanKw(value: number | null | undefined, maximumFractionDigits = 2
 
 const CHART_TOOLTIP_WIDTH = 220;
 const CHART_TOOLTIP_GAP = 14;
+const LIVE_CHART_HEIGHT = 356;
 
-function placeChartTooltip(cursorX: number, cursorY: number, rightEdge: number) {
+function placeChartTooltip(
+  cursorX: number,
+  cursorY: number,
+  rightEdge: number,
+  bottomEdge?: number,
+  tooltipHeight = 0,
+) {
   const onRight = cursorX + CHART_TOOLTIP_GAP + CHART_TOOLTIP_WIDTH <= rightEdge;
+  const placeAbove = bottomEdge !== undefined && cursorY + CHART_TOOLTIP_GAP + tooltipHeight > bottomEdge;
   return {
     x: onRight
       ? cursorX + CHART_TOOLTIP_GAP
       : cursorX - CHART_TOOLTIP_GAP - CHART_TOOLTIP_WIDTH,
-    y: cursorY + CHART_TOOLTIP_GAP,
-    placement: onRight ? "right-bottom" : "left-bottom",
+    y: placeAbove ? Math.max(0, cursorY - CHART_TOOLTIP_GAP - tooltipHeight) : cursorY + CHART_TOOLTIP_GAP,
+    placement: `${onRight ? "right" : "left"}-${placeAbove ? "top" : "bottom"}`,
   } as const;
 }
 
@@ -753,8 +761,8 @@ function LoadChart({
   }, [activeFuel, data, fuelData, mode]);
   const cursorX = selectedTime ? 54 + (timeMinutes(selectedTime) / 1440) * 688 : 54;
   const cursorY = selectedTime ? 20 + (1 - Math.min(selectedValue, maxValue) / maxValue) * 237 : 257;
-  const tooltip = placeChartTooltip(cursorX, cursorY, 742);
   const tooltipHeight = mode === "regions" ? 160 : mode === "energy" ? 126 : 102;
+  const tooltip = placeChartTooltip(cursorX, cursorY, 742, LIVE_CHART_HEIGHT, tooltipHeight);
   const energyShare = selectedMix ? (selectedValue / Math.max(selectedMix.total_mw, 1)) * 100 : 0;
   const chartAccent = mode === "energy" ? activeFuel.color : "var(--blue)";
   const activeIndex = activeData.findIndex((point) => point.observed_at === selectedTime);
@@ -790,7 +798,7 @@ function LoadChart({
     <div className="load-chart-shell">
       <svg
         className="load-chart"
-        viewBox="0 0 760 432"
+        viewBox={`0 0 760 ${LIVE_CHART_HEIGHT}`}
         role="img"
         aria-label={chartLabel}
         data-chart-mode={mode}
