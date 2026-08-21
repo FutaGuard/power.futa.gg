@@ -75,6 +75,16 @@ test("uses the same focus-following tooltip placement for live and history chart
   assert.match(css, /\.history-chart\s*\{[\s\S]*?aspect-ratio:\s*980\s*\/\s*408;/);
 });
 
+test("uses date-only history query parameters for stable API cache keys", async () => {
+  const source = await readFile(new URL("../app/PowerDashboard.tsx", import.meta.url), "utf8");
+  const queryBuilder = source.match(
+    /function historyRangeQuery\(start: string, end: string\) \{([\s\S]*?)\n\}/,
+  )?.[1] ?? "";
+
+  assert.match(queryBuilder, /new URLSearchParams\(\{\s*start,\s*end,\s*limit: "5000",?\s*\}\)/);
+  assert.doesNotMatch(queryBuilder, /toISOString|T00:00:00|T23:59:59/);
+});
+
 test("keeps the hero question on one line on mobile", async () => {
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 

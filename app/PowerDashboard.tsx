@@ -368,9 +368,7 @@ function historyRangeDays(start: string, end: string) {
 }
 
 function historyRangeQuery(start: string, end: string) {
-  const startAt = new Date(`${start}T00:00:00+08:00`).toISOString();
-  const endAt = new Date(`${end}T23:59:59+08:00`).toISOString();
-  return `start=${encodeURIComponent(startAt)}&end=${encodeURIComponent(endAt)}&limit=5000`;
+  return new URLSearchParams({ start, end, limit: "5000" }).toString();
 }
 
 function formatHistoryDate(iso: string, includeTime = false) {
